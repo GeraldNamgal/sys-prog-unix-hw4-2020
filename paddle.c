@@ -27,6 +27,8 @@ void paddle_init( int x_pos, int y_max, int y_min )
         move( paddle.pad_top + i, paddle.pad_col );
         addch(paddle.pad_char);
     }
+
+    refresh();
 }
 
 void paddle_up()
@@ -56,7 +58,6 @@ void paddle_up()
 
 void paddle_down()
 {
-    int cur_top = paddle.pad_top;
     bool moved = false;
 
     if ( paddle.pad_bot < paddle.pad_maxbot )
@@ -68,7 +69,9 @@ void paddle_down()
 
     if (moved)
     {
-
+        mvaddch( paddle.pad_top - 1, paddle.pad_col, BLANK );
+        mvaddch( paddle.pad_bot, paddle.pad_col, PAD_SYMBOL );
         move( LINES-1, COLS-1 );		             /* park cursor	*/
+        refresh();
     }
 }

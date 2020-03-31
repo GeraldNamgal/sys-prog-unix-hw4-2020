@@ -126,6 +126,8 @@ static void putUpWalls()
     move( LINES - BORDR_SIZE, BORDR_SIZE );
     for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
         addch('-');
+
+    refresh();
 }
 
 /* *
