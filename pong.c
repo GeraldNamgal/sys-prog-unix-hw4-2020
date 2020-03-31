@@ -1,136 +1,215 @@
+// Gerald Arocena
+// CSCI E-28, Spring 2020
+// TODO: date goes here
+// hw 4
+
+/* *
+ * 
+ * note: TODO -- need to cite code referenced, e.g., bounce2d.c from lecture
+ */
+
 #include	<stdio.h>
 #include	<curses.h>
 #include	<signal.h>
 #include	<unistd.h>
 #include	<stdlib.h>
-#include	"bounce.h"
+#include	"pong.h"
 #include	"alarmlib.h"
+#include    <stdlib.h>
+#include    "paddle.h"
 
-/*
- *	bounce2d 1.0	
- *
- *	bounce a character (default is *) around the screen
- *	defined by some parameters
- *
- *	user input:
- *		 	s slow down x component, S: slow y component
- *		 	f speed up x component,  F: speed y component
- *			Q quit
- *
- *	blocks on read, but timer tick sets SIGALRM which are caught
- *	by ball_move
- */
+struct ppball the_ball;
 
-struct ppball the_ball ;
+static bool moving_paddle = false;
 
-void set_up();
-void wrap_up();
-int  bounce_or_lose(struct ppball *);
+static void	    set_up();
+static void     putUpWalls();
+static void     serve();
+static void     ball_move();
+static void     wrap_up();
+static int      bounce_or_lose( struct ppball * );
 
-/** the main loop **/
-
+/* *
+ * main()
+ * 
+ */ 
 int main()
 {
-	int	c;
-	void	set_up();
+	int	c;	
 
-	set_up();
+    srand( getpid() );  // use pid as seed for random generator 
 
-	while ( ( c = getch()) != 'Q' ){
-		if ( c == 'f' )	     the_ball.x_delay--;
-		else if ( c == 's' ) the_ball.x_delay++;
-		else if ( c == 'F' ) the_ball.y_delay--;
-		else if ( c == 'S' ) the_ball.y_delay++;
+	set_up();           // init all stuff
+    serve();            // start up ball    
+
+	while ( ( c = getch() ) != 'Q' )
+    {
+		if ( c == 'k' ) {
+            moving_paddle = true;
+            paddle_up() ;
+            moving_paddle = false;
+        }	 
+
+		else if ( c == 'm' ) {
+            moving_paddle = true;
+            paddle_down() ;
+            moving_paddle = false;
+        }
 	}
+
 	wrap_up();
-	return 0;
+	
+    return 0;
 }
 
-/*	init ppball struct, signal handler, curses	*/
+/* *
+ *
+ * init ppball struct, signal handler, curses
+ */
 
-void set_up()
+static void set_up()
 {
-	void	ball_move(int);
+	initscr();		            /* turn on curses	*/
+	noecho();		            /* turn off echo	*/
+	cbreak();		            /* turn off buffering	*/
+    putUpWalls();               /* create court */
+    paddle_init( COLS - BORDR_SIZE - 1, TOP_ROW, BOT_ROW );    
+	signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
+}
 
-	the_ball.y_pos = Y_INIT;
+static void serve()
+{
+    // TODO: change the initial position of 
+
+    the_ball.y_pos = Y_INIT;
 	the_ball.x_pos = X_INIT;
-	the_ball.y_count = the_ball.y_delay = Y_DELAY ;
-	the_ball.x_count = the_ball.x_delay = X_DELAY ;
-	the_ball.y_dir = 1  ;
-	the_ball.x_dir = 1  ;
+	the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1 ;
+	the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1 ;
+	the_ball.y_dir = 1 ;
+	the_ball.x_dir = 1 ;
 	the_ball.symbol = DFL_SYMBOL ;
-
-	initscr();		/* turn on curses	*/
-	noecho();		/* turn off echo	*/
-	cbreak();		/* turn off buffering	*/
-
-	signal(SIGINT, SIG_IGN);	/* ignore SIGINT	*/
-	mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
+    
+    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
 	refresh();
 	
 	signal( SIGALRM, ball_move );
 	set_ticker( 1000 / TICKS_PER_SEC );	/* send millisecs per tick */
 }
 
-/* stop ticker and curses */
-void wrap_up()
-{
+/* *
+ * putUpWalls()
+ * purpose: 
+ * args: 
+ * rets: 
+ */
+static void putUpWalls()
+{    
+    // TODO: check that BORDR_SIZE doesn't exceed screen dimensions
+    // e.g., if (3 rows + 2 * BORDR_SIZE ) > LINES
+    //          || ( 3 cols + 2 * BORDR_SIZE ) > COLS ... some error ... ?
+    // (you want the border, height of the paddle and space for the ball to go
+    // through so can lose the game; doesn't need to handle screen sizes)
+    
+    // print top border
+    move( BORDR_SIZE, BORDR_SIZE );
+    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
+        addch('-');
 
+    // print left border
+    for ( int i = BORDR_SIZE + 1; i < LINES - BORDR_SIZE; i++ )
+    {        
+        move( i, BORDR_SIZE );
+        addch('|');
+    }
+
+    // print bottom border
+    move( LINES - BORDR_SIZE, BORDR_SIZE );
+    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
+        addch('-');
+}
+
+/* *
+ *
+ * stop ticker and curses
+ */
+static void wrap_up()
+{
 	set_ticker( 0 );
 	endwin();		/* put back to normal	*/
 }
 
-/* SIGARLM handler: decr directional counters, move when they hit 0	*/
-/* note: may have too much going on in this handler			*/
+/* *
+ *
+ * SIGARLM handler: decr directional counters, move when they hit 0
+ * note: may have too much going on in this handler
+ */
 
-void ball_move(int s)
+static void ball_move()
 {
-	int	y_cur, x_cur, moved;
+	int	y_cur, x_cur, moved, save_y, save_x;
 
-	signal( SIGALRM , SIG_IGN );		/* dont get caught now 	*/
-	y_cur = the_ball.y_pos ;		/* old spot		*/
+	signal( SIGALRM , SIG_IGN );		         /* dont get caught now 	*/
+	y_cur = the_ball.y_pos ;		             /* old spot		*/
 	x_cur = the_ball.x_pos ;
 	moved = 0 ;
 
-	if ( the_ball.y_delay > 0 && --the_ball.y_count == 0 ){
-		the_ball.y_pos += the_ball.y_dir ;	/* move	*/
-		the_ball.y_count = the_ball.y_delay  ;	/* reset*/
+	if ( --the_ball.y_count <= 0 ) {
+		the_ball.y_pos += the_ball.y_dir ;	     /* move	*/
+		the_ball.y_count = the_ball.y_delay ;    /* reset*/
 		moved = 1;
 	}
 
-	if ( the_ball.x_delay > 0 && --the_ball.x_count == 0 ){
-		the_ball.x_pos += the_ball.x_dir ;	/* move	*/
-		the_ball.x_count = the_ball.x_delay  ;	/* reset*/
+	if ( --the_ball.x_count <= 0 ) { 
+		the_ball.x_pos += the_ball.x_dir ;       /* move	*/
+		the_ball.x_count = the_ball.x_delay ;	 /* reset*/
 		moved = 1;
 	}
 
-	if ( moved ){
-		mvaddch(y_cur, x_cur, BLANK);
-		mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
+	if ( moved ) {
+        if ( moving_paddle == true )
+            getyx( stdscr, save_y, save_x );     /* save cursor location */
+		mvaddch( y_cur, x_cur, BLANK );
+		mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
 		bounce_or_lose( &the_ball );
-		move(LINES-1, COLS-1);		/* park cursor	*/
+        if ( moving_paddle == true )
+            move( save_y, save_x );              /* return to saved location */
+        else
+            move( LINES-1, COLS-1 );	         /* park cursor	*/		
 		refresh();
 	}
-	signal(SIGALRM, ball_move);		/* re-enable handler	*/
+	
+    signal(SIGALRM, ball_move);		             /* re-enable handler	*/
 }
 
-/* bounce_or_lose: if ball hits walls, change its direction
- *   args: address to ppball
- *   rets: 1 if a bounce happened, 0 if not
+/* *
+ *
+ * bounce_or_lose: if ball hits walls, change its direction
+ * args: address to ppball
+ * rets: 1 if a bounce happened, 0 if not
  */
-int bounce_or_lose(struct ppball *bp)
+static int bounce_or_lose(struct ppball *bp)
 {
 	int	return_val = 0 ;
 
 	if ( bp->y_pos == TOP_ROW )
-		bp->y_dir = 1 , return_val = 1 ;
-	else if ( bp->y_pos == BOT_ROW )
-		bp->y_dir = -1 , return_val = 1;
-
-	if ( bp->x_pos == LEFT_EDGE )
-		bp->x_dir = 1 , return_val = 1 ;
-	else if ( bp->x_pos == RIGHT_EDGE )
-		bp->x_dir = -1 , return_val = 1;
+		bp->y_dir = 1 , return_val = 1 ,
+        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
+        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+	
+    else if ( bp->y_pos == BOT_ROW )
+		bp->y_dir = -1 , return_val = 1 ,
+        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
+        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+	
+    if ( bp->x_pos == LEFT_EDGE )
+		bp->x_dir = 1 , return_val = 1 ,
+        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
+        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+	
+    else if ( bp->x_pos == RIGHT_EDGE )
+		bp->x_dir = -1 , return_val = 1 ,
+        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
+        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
 
 	return return_val;
 }
