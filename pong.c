@@ -186,11 +186,13 @@ void move_the_ball( int y_cur, int x_cur )
     if ( moving_paddle == true )
         getyx( stdscr, save_y, save_x );         /* save cursor location */
 
-    if ( bounce_or_lose( &the_ball ) == LENGTH_HIT )         
-            the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/        
+    if ( bounce_or_lose( &the_ball ) == LENGTH_HIT ) {
+            the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/
+    }        
     
-    if ( bounce_or_lose( &the_ball ) == WIDTH_HIT )          
-            the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/        
+    if ( bounce_or_lose( &the_ball ) == WIDTH_HIT ) {          
+            the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/
+    }        
 
     // TODO: if ( bounce_or_lose( &the_ball ) == CORNER_HIT ) both x and y move
 
