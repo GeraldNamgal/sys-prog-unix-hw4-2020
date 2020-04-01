@@ -6,7 +6,7 @@
 #include    "paddle.h"
 #include	<curses.h>
 
-struct pppaddle paddle;
+static struct pppaddle paddle;
 
 void paddle_init( int x_pos, int y_max, int y_min )
 {
@@ -49,11 +49,6 @@ void paddle_up()
         move( LINES-1, COLS-1 );		             /* park cursor	*/
         refresh();
     }
-
-    #if 0
-    if (paddle->pad_top > paddle->pad_mintop)
-        move( paddle );
-    #endif
 }
 
 void paddle_down()
@@ -74,4 +69,19 @@ void paddle_down()
         move( LINES-1, COLS-1 );		             /* park cursor	*/
         refresh();
     }
+}
+
+// TODO
+int paddle_contact( int y, int x )
+{
+    int     left_side = 1 ,       // left face of paddle
+            top_left  = 2 ,       // top left corner of paddle
+            bot_left  = 3 ,       // bottom left corner of paddle
+            top       = 4 ,       // top of paddle
+            bottom    = 5 ;       // bottom of paddle
+    
+    if ( y >= paddle.pad_top && y <= paddle.pad_bot && x == paddle.pad_col - 1 )
+        return left_side;
+    
+    return 0;                     // 0 for no contact
 }

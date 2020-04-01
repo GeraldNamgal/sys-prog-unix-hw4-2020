@@ -73,18 +73,21 @@ static void set_up()
 	noecho();		            /* turn off echo	*/
 	cbreak();		            /* turn off buffering	*/
     putUpWalls();               /* create court */
-    paddle_init( COLS - BORDR_SIZE - 1, TOP_ROW, BOT_ROW );    
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );    
 	signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
 }
 
 static void serve()
 {
-    // TODO: change the initial position of 
+    // TODO: change the initial position to something calculated
 
     the_ball.y_pos = Y_INIT;
 	the_ball.x_pos = X_INIT;
-	the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1 ;
-	the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1 ;
+    if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
+    {
+        the_ball.y_count = the_ball.y_delay = Y_MIN ;
+    }
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;
 	the_ball.y_dir = 1 ;
 	the_ball.x_dir = 1 ;
 	the_ball.symbol = DFL_SYMBOL ;
@@ -112,7 +115,7 @@ static void putUpWalls()
     
     // print top border
     move( BORDR_SIZE, BORDR_SIZE );
-    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
+    for (int i = BORDR_SIZE; i <= COLS - BORDR_SIZE; i++)
         addch('-');
 
     // print left border
@@ -124,7 +127,7 @@ static void putUpWalls()
 
     // print bottom border
     move( LINES - BORDR_SIZE, BORDR_SIZE );
-    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
+    for (int i = BORDR_SIZE; i <= COLS - BORDR_SIZE; i++)
         addch('-');
 
     refresh();
@@ -155,13 +158,13 @@ static void ball_move()
 	x_cur = the_ball.x_pos ;
 	moved = 0 ;
 
-	if ( --the_ball.y_count <= 0 ) {
+	if ( --the_ball.y_count < 0 ) {
 		the_ball.y_pos += the_ball.y_dir ;	     /* move	*/
 		the_ball.y_count = the_ball.y_delay ;    /* reset*/
 		moved = 1;
 	}
 
-	if ( --the_ball.x_count <= 0 ) { 
+	if ( --the_ball.x_count < 0 ) { 
 		the_ball.x_pos += the_ball.x_dir ;       /* move	*/
 		the_ball.x_count = the_ball.x_delay ;	 /* reset*/
 		moved = 1;
@@ -194,24 +197,23 @@ static int bounce_or_lose(struct ppball *bp)
 	int	return_val = 0 ;
 
 	if ( bp->y_pos == TOP_ROW )
-		bp->y_dir = 1 , return_val = 1 ,
-        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
-        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+		bp->y_dir = 1 , return_val = 1;        
 	
     else if ( bp->y_pos == BOT_ROW )
-		bp->y_dir = -1 , return_val = 1 ,
-        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
-        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+		bp->y_dir = -1 , return_val = 1;
 	
     if ( bp->x_pos == LEFT_EDGE )
-		bp->x_dir = 1 , return_val = 1 ,
-        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
-        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+		bp->x_dir = 1 , return_val = 1;     
 	
-    else if ( bp->x_pos == RIGHT_EDGE )
-		bp->x_dir = -1 , return_val = 1 ,
-        the_ball.x_count = the_ball.x_delay = ( rand() % MAXNUM ) + 1,
-        the_ball.y_count = the_ball.y_delay = ( rand() % MAXNUM ) + 1;
+    else if ( bp->x_pos == RIGHT_EDGE ) {
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == 1 ) {
+            bp->x_dir = -1 , return_val = 1 ,
+            the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );
+            if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) )
+                < Y_MIN )
+                    the_ball.y_count = the_ball.y_delay = Y_MIN;
+        }
+    }
 
 	return return_val;
 }
