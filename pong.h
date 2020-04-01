@@ -24,8 +24,8 @@
 #define	TICKS_PER_SEC	50		                /* affects speed	*/
 // TODO: have an X_MIN for debugging or otherwise?
 #define X_MAX            6                      /* max delay for x ball speed */
-#define Y_MIN            0 // TODO (change #?): 7   /* min delay for y ball speed */
-#define Y_MAX            6 // TODO (change #?): 20  /* max delay for y ball speed */
+#define Y_MIN            7 // TODO (change #?): 7   /* min delay for y ball speed */
+#define Y_MAX           13 // TODO (change #?): 20  /* max delay for y ball speed */
 
 #define LENGTH_HIT       1
 #define WIDTH_HIT        2

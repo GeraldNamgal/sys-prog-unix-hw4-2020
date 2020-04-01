@@ -237,8 +237,13 @@ static int bounce_or_lose(struct ppball *bp)
                     the_ball.y_count = the_ball.y_delay = Y_MIN;
         }
 
-        // TODO: corner hits occur with right edge only when paddle is flush with
-        // either top or bottom border
+        // TODO: corner hits on borders occur with right edge only when paddle
+        // is flush with either top or bottom border
+        
+        // TODO: to know if corner hit on paddle, look at the y direction of the
+        // ball. For instance, if it hit the bottom of paddle and y dir was +1
+        // and it wasn't in the same column as the paddle, then it was a corner
+        // hit on the paddle
     }
 
 	return return_val;
