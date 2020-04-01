@@ -244,6 +244,13 @@ static int bounce_or_lose(struct ppball *bp)
         // ball. For instance, if it hit the bottom of paddle and y dir was +1
         // and it wasn't in the same column as the paddle, then it was a corner
         // hit on the paddle
+
+        // TODO: when you change the ball's direction, need to consider if moving
+        // it backward won't make it hit another boundary, e.g, from border wall
+        // to paddle and vice-versa (could "stuck" the ball as a legal move)
+
+        // TODO: can change the orientation at the beginning of ball_move instead
+        // of at the end
     }
 
 	return return_val;
