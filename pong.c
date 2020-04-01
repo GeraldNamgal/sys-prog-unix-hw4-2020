@@ -73,7 +73,7 @@ static void set_up()
 	noecho();		            /* turn off echo	*/
 	cbreak();		            /* turn off buffering	*/
     putUpWalls();               /* create court */
-    paddle_init( COLS - BORDR_SIZE - 1, TOP_ROW, BOT_ROW );    
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );    
 	signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
 }
 
@@ -170,12 +170,24 @@ static void ball_move()
 		moved = 1;
 	}
 
+    // TODO: move moved stuff to another function
 	if ( moved ) {
         if ( moving_paddle == true )
-            getyx( stdscr, save_y, save_x );     /* save cursor location */
-		mvaddch( y_cur, x_cur, BLANK );
+            getyx( stdscr, save_y, save_x );         /* save cursor location */
+		
+        // TODO: mention what types of hits each number corresponds to
+
+        if ( bounce_or_lose( &the_ball ) == 1 )          /* length hit */
+                the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/        
+        
+        if ( bounce_or_lose( &the_ball ) == 2 )           /* width hit */
+                the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/        
+
+        // TODO: corner hits ( == 3 ) where both x and y move
+
+        mvaddch( y_cur, x_cur, BLANK );
 		mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
-		bounce_or_lose( &the_ball );
+		
         if ( moving_paddle == true )
             move( save_y, save_x );              /* return to saved location */
         else
@@ -196,6 +208,10 @@ static int bounce_or_lose(struct ppball *bp)
 {
 	int	return_val = 0 ;
 
+    // TODO: mention what 1 and 2, etc. are, e.g., 1 means a length hit
+
+    // TODO: corner hits ( == 3 )
+
 	if ( bp->y_pos == TOP_ROW )
 		bp->y_dir = 1 , return_val = 1;        
 	
@@ -203,11 +219,11 @@ static int bounce_or_lose(struct ppball *bp)
 		bp->y_dir = -1 , return_val = 1;
 	
     if ( bp->x_pos == LEFT_EDGE )
-		bp->x_dir = 1 , return_val = 1;     
+		bp->x_dir = 1 , return_val = 2;     
 	
     else if ( bp->x_pos == RIGHT_EDGE ) {
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == 1 ) {
-            bp->x_dir = -1 , return_val = 1 ,
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == 2 ) {
+            bp->x_dir = -1 , return_val = 2 ,
             the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );
             if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) )
                 < Y_MIN )

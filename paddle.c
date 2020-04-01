@@ -35,7 +35,7 @@ void paddle_up()
 {
     bool moved = false;
 
-    if ( paddle.pad_top > paddle.pad_mintop )
+    if ( paddle.pad_top > paddle.pad_mintop + 1 )
     {
         paddle.pad_bot--;
         paddle.pad_top--;
@@ -55,7 +55,7 @@ void paddle_down()
 {
     bool moved = false;
 
-    if ( paddle.pad_bot < paddle.pad_maxbot )
+    if ( paddle.pad_bot < paddle.pad_maxbot - 1 )
     {
         paddle.pad_bot++;
         paddle.pad_top++;
@@ -74,14 +74,12 @@ void paddle_down()
 // TODO
 int paddle_contact( int y, int x )
 {
-    int     left_side = 1 ,       // left face of paddle
-            top_left  = 2 ,       // top left corner of paddle
-            bot_left  = 3 ,       // bottom left corner of paddle
-            top       = 4 ,       // top of paddle
-            bottom    = 5 ;       // bottom of paddle
+    int     middle = 2 ,       // middle of paddle
+            top    = 4 ,       // top of paddle
+            bottom = 5 ;       // bottom of paddle           
     
-    if ( y >= paddle.pad_top && y <= paddle.pad_bot && x == paddle.pad_col - 1 )
-        return left_side;
+    if ( y > paddle.pad_top && y < paddle.pad_bot && x == paddle.pad_col )
+        return middle;
     
-    return 0;                     // 0 for no contact
+    return 0;                  // 0 for no contact
 }
