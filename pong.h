@@ -18,7 +18,7 @@
 #define	TOP_ROW		    BORDR_SIZE + 1
 #define	BOT_ROW 	    LINES - BORDR_SIZE - 1
 #define	LEFT_EDGE	    BORDR_SIZE + 1
-#define	RIGHT_EDGE	    COLS - BORDR_SIZE - 1
+#define	RIGHT_EDGE	    COLS - BORDR_SIZE - 2
 #define	X_INIT		    10		                /* starting col		*/
 #define	Y_INIT		    10		                /* starting row		*/
 #define	TICKS_PER_SEC	50		                /* affects speed	*/

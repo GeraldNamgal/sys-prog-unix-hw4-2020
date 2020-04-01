@@ -73,7 +73,7 @@ static void set_up()
 	noecho();		            /* turn off echo	*/
 	cbreak();		            /* turn off buffering	*/
     putUpWalls();               /* create court */
-    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );    
+    paddle_init( COLS - BORDR_SIZE - 1, TOP_ROW, BOT_ROW );    
 	signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
 }
 
@@ -115,7 +115,7 @@ static void putUpWalls()
     
     // print top border
     move( BORDR_SIZE, BORDR_SIZE );
-    for (int i = BORDR_SIZE; i <= COLS - BORDR_SIZE; i++)
+    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
         addch('-');
 
     // print left border
@@ -127,7 +127,7 @@ static void putUpWalls()
 
     // print bottom border
     move( LINES - BORDR_SIZE, BORDR_SIZE );
-    for (int i = BORDR_SIZE; i <= COLS - BORDR_SIZE; i++)
+    for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
         addch('-');
 
     refresh();
