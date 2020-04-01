@@ -28,6 +28,7 @@ static void     serve();
 static void     ball_move();
 static void     wrap_up();
 static int      bounce_or_lose( struct ppball * );
+static void     move_the_ball( int, int );
 
 /* *
  * main()
@@ -148,10 +149,9 @@ static void wrap_up()
  * SIGARLM handler: decr directional counters, move when they hit 0
  * note: may have too much going on in this handler
  */
-
 static void ball_move()
 {
-	int	y_cur, x_cur, moved, save_y, save_x;
+	int	y_cur, x_cur, moved;
 
 	signal( SIGALRM , SIG_IGN );		         /* dont get caught now 	*/
 	y_cur = the_ball.y_pos ;		             /* old spot		*/
@@ -170,32 +170,39 @@ static void ball_move()
 		moved = 1;
 	}
 
-    // TODO: move moved stuff to another function
-	if ( moved ) {
-        if ( moving_paddle == true )
-            getyx( stdscr, save_y, save_x );         /* save cursor location */
-		
-        // TODO: mention what types of hits each number corresponds to
-
-        if ( bounce_or_lose( &the_ball ) == 1 )          /* length hit */
-                the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/        
-        
-        if ( bounce_or_lose( &the_ball ) == 2 )           /* width hit */
-                the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/        
-
-        // TODO: corner hits ( == 3 ) where both x and y move
-
-        mvaddch( y_cur, x_cur, BLANK );
-		mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
-		
-        if ( moving_paddle == true )
-            move( save_y, save_x );              /* return to saved location */
-        else
-            move( LINES-1, COLS-1 );	         /* park cursor	*/		
-		refresh();
-	}
-	
+	if ( moved )
+        move_the_ball( y_cur, x_cur );
+        	
     signal(SIGALRM, ball_move);		             /* re-enable handler	*/
+}
+
+/* *
+ *
+ */
+void move_the_ball( int y_cur, int x_cur )
+{
+    int save_y, save_x;
+
+    if ( moving_paddle == true )
+        getyx( stdscr, save_y, save_x );         /* save cursor location */
+
+    if ( bounce_or_lose( &the_ball ) == LENGTH_HIT )         
+            the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/        
+    
+    if ( bounce_or_lose( &the_ball ) == WIDTH_HIT )          
+            the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/        
+
+    // TODO: if ( bounce_or_lose( &the_ball ) == CORNER_HIT ) both x and y move
+
+    mvaddch( y_cur, x_cur, BLANK );
+    mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
+    
+    if ( moving_paddle == true )
+        move( save_y, save_x );              /* return to saved location */
+    else
+        move( LINES-1, COLS-1 );	         /* park cursor	*/		
+    
+    refresh();
 }
 
 /* *
@@ -213,22 +220,25 @@ static int bounce_or_lose(struct ppball *bp)
     // TODO: corner hits ( == 3 )
 
 	if ( bp->y_pos == TOP_ROW )
-		bp->y_dir = 1 , return_val = 1;        
+		bp->y_dir = 1 , return_val = LENGTH_HIT;        
 	
     else if ( bp->y_pos == BOT_ROW )
-		bp->y_dir = -1 , return_val = 1;
+		bp->y_dir = -1 , return_val = LENGTH_HIT;
 	
     if ( bp->x_pos == LEFT_EDGE )
-		bp->x_dir = 1 , return_val = 2;     
+		bp->x_dir = 1 , return_val = WIDTH_HIT;     
 	
     else if ( bp->x_pos == RIGHT_EDGE ) {
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == 2 ) {
-            bp->x_dir = -1 , return_val = 2 ,
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == MIDDLE_HIT ) {
+            bp->x_dir = -1 , return_val = WIDTH_HIT ,
             the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );
             if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) )
                 < Y_MIN )
                     the_ball.y_count = the_ball.y_delay = Y_MIN;
         }
+
+        // TODO: corner hits occur with right edge only when paddle is flush with
+        // either top or bottom border
     }
 
 	return return_val;

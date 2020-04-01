@@ -73,13 +73,9 @@ void paddle_down()
 
 // TODO
 int paddle_contact( int y, int x )
-{
-    int     middle = 2 ,       // middle of paddle
-            top    = 4 ,       // top of paddle
-            bottom = 5 ;       // bottom of paddle           
-    
+{    
     if ( y > paddle.pad_top && y < paddle.pad_bot && x == paddle.pad_col )
-        return middle;
+        return MIDDLE_HIT;
     
     return 0;                  // 0 for no contact
 }

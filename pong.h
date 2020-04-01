@@ -27,6 +27,10 @@
 #define Y_MIN            0 // TODO (change #?): 7   /* min delay for y ball speed */
 #define Y_MAX            6 // TODO (change #?): 20  /* max delay for y ball speed */
 
+#define LENGTH_HIT       1
+#define WIDTH_HIT        2
+#define CORNER_HIT       3
+
 /* *
  * TODO
  * the only object in town
