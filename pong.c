@@ -28,7 +28,7 @@ static void     serve();
 static void     ball_move();
 static void     wrap_up();
 static int      bounce_or_lose( struct ppball * );
-static void     move_the_ball( int, int );
+static void     move_the_ball( int, int, int, int );
 
 /* *
  * main()
@@ -40,7 +40,7 @@ int main()
 
     srand( getpid() );  // use pid as seed for random generator 
 
-	set_up();           // init all stuff
+	set_up();           // initialize all stuff
     serve();            // start up ball    
 
 	while ( ( c = getch() ) != 'Q' )
@@ -151,58 +151,63 @@ static void wrap_up()
  */
 static void ball_move()
 {
-	int	y_cur, x_cur, moved;
+	int	y_cur, x_cur, y_moved, x_moved;
 
 	signal( SIGALRM , SIG_IGN );		         /* dont get caught now 	*/
-	y_cur = the_ball.y_pos ;		             /* old spot		*/
-	x_cur = the_ball.x_pos ;
-	moved = 0 ;
+	y_cur = the_ball.y_pos;                      /* old spot */
+    x_cur = the_ball.x_pos;   
+	y_moved = 0;
+    x_moved = 0 ;
 
 	if ( --the_ball.y_count < 0 ) {
 		the_ball.y_pos += the_ball.y_dir ;	     /* move	*/
 		the_ball.y_count = the_ball.y_delay ;    /* reset*/
-		moved = 1;
+		y_moved = 1;
 	}
 
 	if ( --the_ball.x_count < 0 ) { 
 		the_ball.x_pos += the_ball.x_dir ;       /* move	*/
 		the_ball.x_count = the_ball.x_delay ;	 /* reset*/
-		moved = 1;
+		x_moved = 1;
 	}
 
-	if ( moved )
-        move_the_ball( y_cur, x_cur );
+	if ( y_moved || x_moved )
+        move_the_ball( y_cur, x_cur, y_moved, x_moved );
         	
     signal(SIGALRM, ball_move);		             /* re-enable handler	*/
 }
 
 /* *
- *
+ * TODO
  */
-void move_the_ball( int y_cur, int x_cur )
+void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
 {
-    int save_y, save_x;
-
-    if ( moving_paddle == true )
-        getyx( stdscr, save_y, save_x );         /* save cursor location */
-
-    if ( bounce_or_lose( &the_ball ) == LENGTH_HIT ) {
-            the_ball.y_pos += the_ball.y_dir * 2 ;	     /* move	*/
-    }        
+    int save_y, save_x, ret_value;
     
-    if ( bounce_or_lose( &the_ball ) == WIDTH_HIT ) {          
-            the_ball.x_pos += the_ball.x_dir * 2 ;       /* move	*/
-    }        
+    if ( moving_paddle == true )
+        getyx( stdscr, save_y, save_x );           // save cursor location
 
-    // TODO: if ( bounce_or_lose( &the_ball ) == CORNER_HIT ) both x and y move
+    ret_value = bounce_or_lose( &the_ball );     
+
+    if ( ret_value == UP_DOWN_HIT || ret_value == LEFT_RIGHT_HIT
+        || ret_value == CORNER_HIT ) {
+            if ( y_moved )                         // "bounce" in opposite dir
+                the_ball.y_pos += the_ball.y_dir * 2;
+            if ( x_moved )	
+                the_ball.x_pos += the_ball.x_dir * 2;
+            if ( bounce_or_lose( &the_ball ) != 0 ) {  // hit another boundary? 
+                the_ball.y_pos = y_cur;            // back to cur, can't move 
+                the_ball.x_pos = x_cur;       
+            }                    
+    }
 
     mvaddch( y_cur, x_cur, BLANK );
     mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
     
     if ( moving_paddle == true )
-        move( save_y, save_x );              /* return to saved location */
+        move( save_y, save_x );              /* return cursor */
     else
-        move( LINES-1, COLS-1 );	         /* park cursor	*/		
+        move( LINES-1, COLS-1 );	         /* or re-park cursor	*/		
     
     refresh();
 }
@@ -215,28 +220,52 @@ void move_the_ball( int y_cur, int x_cur )
  */
 static int bounce_or_lose(struct ppball *bp)
 {
-	int	return_val = 0 ;
-
-    // TODO: mention what 1 and 2, etc. are, e.g., 1 means a length hit
-
-    // TODO: corner hits ( == 3 )
-
-	if ( bp->y_pos == TOP_ROW )
-		bp->y_dir = 1 , return_val = LENGTH_HIT;        
-	
-    else if ( bp->y_pos == BOT_ROW )
-		bp->y_dir = -1 , return_val = LENGTH_HIT;
-	
-    if ( bp->x_pos == LEFT_EDGE )
-		bp->x_dir = 1 , return_val = WIDTH_HIT;     
-	
+	if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = 1;
+        bp->x_dir = 1;
+        return CORNER_HIT;        
+    }
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = -1;
+        bp->x_dir = 1;
+        return CORNER_HIT;
+    }
+    else if ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE )    
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == AT_MIN_TOP ) {
+            bp->y_dir = 1;
+            bp->x_dir = -1;
+            return CORNER_HIT;
+        }
+        else
+            return UP_DOWN_HIT;            
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE )    
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == AT_MAX_BOT ) {
+            bp->y_dir = -1;
+            bp->x_dir = -1;
+            return CORNER_HIT;
+        }
+        else
+            return UP_DOWN_HIT;      
+    else if ( bp->x_pos == LEFT_EDGE ) {
+		bp->x_dir = 1;
+        return LEFT_RIGHT_HIT;     
+    }
     else if ( bp->x_pos == RIGHT_EDGE ) {
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == MIDDLE_HIT ) {
-            bp->x_dir = -1 , return_val = WIDTH_HIT ,
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_MIDDLE ) {
+            bp->x_dir = -1;
             the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );
             if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) )
                 < Y_MIN )
                     the_ball.y_count = the_ball.y_delay = Y_MIN;
+            return LEFT_RIGHT_HIT;
+        }
+
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_TOP ) {
+
+        }
+
+        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_BOTTOM ) {
+
         }
 
         // TODO: corner hits on borders occur with right edge only when paddle
@@ -252,8 +281,16 @@ static int bounce_or_lose(struct ppball *bp)
         // to paddle and vice-versa (could "stuck" the ball as a legal move)
 
         // TODO: can change the orientation at the beginning of ball_move instead
-        // of at the end
+        // of at the end?
+    }
+    else if ( bp->y_pos == TOP_ROW ) {
+        bp->y_dir = 1;
+        return UP_DOWN_HIT;
+    }
+    else if ( bp->y_pos == BOT_ROW ) {
+        bp->y_dir = -1;
+        return UP_DOWN_HIT;
     }
 
-	return return_val;
+	return NO_HIT;
 }

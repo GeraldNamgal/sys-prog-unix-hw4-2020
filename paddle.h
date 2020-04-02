@@ -9,9 +9,12 @@
 #define	PAD_SYMBOL    '#'
 #define PAD_HEIGHT     4
 
-#define TOP_HIT        1
-#define MIDDLE_HIT     2
-#define BOTTOM_HIT     3
+#define NO_CONTACT     0
+#define PADD_TOP       1
+#define PADD_MIDDLE    2
+#define PADD_BOTTOM    3
+#define AT_MIN_TOP     4
+#define AT_MAX_BOT     5
 
 struct pppaddle { int   pad_top, pad_bot, pad_col;
                   char  pad_char;

@@ -75,7 +75,21 @@ void paddle_down()
 int paddle_contact( int y, int x )
 {    
     if ( y > paddle.pad_top && y < paddle.pad_bot && x == paddle.pad_col )
-        return MIDDLE_HIT;
+        return PADD_MIDDLE;                // ball hit middle block(s) of paddle
+
+    if ( y == paddle.pad_top && x == paddle.pad_col )
+        return PADD_TOP;                   // ball hit top block of paddle
+
+    if ( y == paddle.pad_bot && x == paddle.pad_col )
+        return PADD_BOTTOM;                // ball hit bottom block of paddle
+
+    if ( paddle.pad_top == paddle.pad_mintop + 1 && y == paddle.pad_mintop
+        && x == paddle.pad_col )           // ball is in upper right corner
+        return AT_MIN_TOP;                 // & paddle is flush with top row
+
+    if ( paddle.pad_bot == paddle.pad_maxbot - 1 && y == paddle.pad_maxbot
+        && x == paddle.pad_col )           // ball is in bottom right corner
+        return AT_MAX_BOT;                 // & paddle is flush with bottom row
     
-    return 0;                  // 0 for no contact
+    return NO_CONTACT;           
 }
