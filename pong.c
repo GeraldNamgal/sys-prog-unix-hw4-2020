@@ -27,7 +27,7 @@ static void     putUpWalls();
 static void     serve();
 static void     ball_move();
 static void     wrap_up();
-static int      bounce_or_lose( struct ppball * );
+static int      bounce_or_lose( struct ppball *, int, int );
 static void     move_the_ball( int, int, int, int );
 
 /* *
@@ -185,18 +185,18 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
     int save_y, save_x, ret_value;
     
     if ( moving_paddle == true )
-        getyx( stdscr, save_y, save_x );           // save cursor location
+        getyx( stdscr, save_y, save_x );    // save cursor location
 
-    ret_value = bounce_or_lose( &the_ball );     
+    ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );     
 
     if ( ret_value == UP_DOWN_HIT || ret_value == LEFT_RIGHT_HIT
         || ret_value == CORNER_HIT ) {
-            if ( y_moved )                         // "bounce" in opposite dir
+            if ( y_moved )                  // "bounce" in opposite dir
                 the_ball.y_pos += the_ball.y_dir * 2;
             if ( x_moved )	
                 the_ball.x_pos += the_ball.x_dir * 2;
-            if ( bounce_or_lose( &the_ball ) != 0 ) {  // hit another boundary? 
-                the_ball.y_pos = y_cur;            // back to cur, can't move 
+            if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != 0 ) { 
+                the_ball.y_pos = y_cur;     // hit another boundary, back to cur 
                 the_ball.x_pos = x_cur;       
             }                    
     }
@@ -218,7 +218,7 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
  * args: address to ppball
  * rets: 1 if a bounce happened, 0 if not
  */
-static int bounce_or_lose(struct ppball *bp)
+static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 {
 	if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {
 		bp->y_dir = 1;
@@ -231,41 +231,83 @@ static int bounce_or_lose(struct ppball *bp)
         return CORNER_HIT;
     }
     else if ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE )    
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == AT_MIN_TOP ) {
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MIN_TOP ) {
             bp->y_dir = 1;
             bp->x_dir = -1;
             return CORNER_HIT;
         }
-        else
-            return UP_DOWN_HIT;            
+        else {
+            bp->y_dir = 1;
+            return UP_DOWN_HIT;
+        }            
     else if ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE )    
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == AT_MAX_BOT ) {
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MAX_BOT ) {
             bp->y_dir = -1;
             bp->x_dir = -1;
             return CORNER_HIT;
         }
-        else
-            return UP_DOWN_HIT;      
+        else {
+            bp->y_dir = -1;
+            return UP_DOWN_HIT;
+        }      
     else if ( bp->x_pos == LEFT_EDGE ) {
 		bp->x_dir = 1;
         return LEFT_RIGHT_HIT;     
     }
+    
+    // TODO: need to make sure you change direction on bounces and for paddle
+    // hits that you change the speed to a rand() one
+
     else if ( bp->x_pos == RIGHT_EDGE ) {
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_MIDDLE ) {
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_MIDDLE ) {
             bp->x_dir = -1;
-            the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );
-            if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) )
-                < Y_MIN )
-                    the_ball.y_count = the_ball.y_delay = Y_MIN;
+            bp->x_delay = ( rand() % X_MAX );         // change speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
+                bp->y_delay = Y_MIN;
             return LEFT_RIGHT_HIT;
         }
 
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_TOP ) {
+        else if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_TOP ) {
+            if ( y_moved && !x_moved ) {
+                bp->y_dir = -1;
+                return UP_DOWN_HIT;
+            }
 
+            bp->x_delay = ( rand() % X_MAX );   // change speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
+                bp->y_delay = Y_MIN;
+
+            if ( y_moved && x_moved && bp->y_dir == 1 ) {
+                bp->y_dir = -1;
+                bp->x_dir = -1;
+                return CORNER_HIT;
+            }
+
+            else {
+                bp->x_dir = -1;
+                return LEFT_RIGHT_HIT;
+            }
         }
 
-        if ( paddle_contact( the_ball.y_pos, the_ball.x_pos ) == PADD_BOTTOM ) {
+        else if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_BOTTOM ) {
+            if ( y_moved && !x_moved ) {
 
+                return UP_DOWN_HIT;
+            }
+
+            bp->x_delay = ( rand() % X_MAX );     // change speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
+                bp->y_delay = Y_MIN;
+
+            if ( y_moved && x_moved && bp->y_dir == -1 ) {
+
+                return CORNER_HIT;
+            }
+
+            else {
+
+                return LEFT_RIGHT_HIT;
+            }
         }
 
         // TODO: corner hits on borders occur with right edge only when paddle
