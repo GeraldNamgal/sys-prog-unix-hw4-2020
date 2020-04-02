@@ -256,7 +256,14 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
     }
     
     // TODO: need to make sure you change direction on bounces and for paddle
-    // hits that you change the speed to a rand() one
+    // hits that you change the speed to a rand() one (double check the paddle
+    // ones especially)
+
+    // TODO: hit the paddle then went below bottom row with breaking the barrier
+
+    // TODO: hitting bottom of paddle works and so does hitting the top (just fyi)
+
+    // TODO: bouncing from lower left corner worked (just fyi)
 
     else if ( bp->x_pos == RIGHT_EDGE ) {
         if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_MIDDLE ) {
@@ -291,7 +298,7 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 
         else if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_BOTTOM ) {
             if ( y_moved && !x_moved ) {
-
+                bp->y_dir = 1;
                 return UP_DOWN_HIT;
             }
 
@@ -300,12 +307,13 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
                 bp->y_delay = Y_MIN;
 
             if ( y_moved && x_moved && bp->y_dir == -1 ) {
-
+                bp->y_dir = 1;
+                bp->x_dir = -1;
                 return CORNER_HIT;
             }
 
             else {
-
+                bp->x_dir = -1;
                 return LEFT_RIGHT_HIT;
             }
         }
