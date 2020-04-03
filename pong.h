@@ -30,6 +30,8 @@
 #define NO_HIT           0
 #define BOUNCE           1
 #define LOSE            -1
+#define BALL_BELOW       6
+#define BALL_ABOVE       7
 
 /* *
  * TODO
