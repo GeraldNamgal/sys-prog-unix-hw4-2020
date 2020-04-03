@@ -46,7 +46,6 @@ void paddle_up()
     {
         mvaddch( paddle.pad_bot + 1, paddle.pad_col, BLANK );
         mvaddch( paddle.pad_top, paddle.pad_col, PAD_SYMBOL );
-        move( LINES-1, COLS-1 );		             /* park cursor	*/
         refresh();
     }
 }
@@ -66,7 +65,6 @@ void paddle_down()
     {
         mvaddch( paddle.pad_top - 1, paddle.pad_col, BLANK );
         mvaddch( paddle.pad_bot, paddle.pad_col, PAD_SYMBOL );
-        move( LINES-1, COLS-1 );		             /* park cursor	*/
         refresh();
     }
 }
