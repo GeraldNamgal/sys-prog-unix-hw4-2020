@@ -20,7 +20,7 @@
 
 struct ppball the_ball;
 
-static int  balls_left = 100;
+static int  balls_left = 2;
 
 static void	    set_up();
 static void     putUpWalls();
@@ -32,7 +32,8 @@ static void     move_the_ball( int, int, int, int );
 static int      corner_bounce( struct ppball * );
 static int      edge_bounce( struct ppball * );
 static void     padd_middle_hit( struct ppball * );
-static void     padd_ends_hit( int, int, int );
+static void     padd_top_hit( struct ppball *, int, int );
+static void     padd_bottom_hit( struct ppball *, int, int );
 static void     reset();
 static void     game_over();
 
@@ -51,14 +52,14 @@ int main()
 
 	while ( ( c = getch() ) != 'Q' )
     {
-		if ( c == 'k' )             
-            paddle_up() ;  	 
+		if ( c == 'k' )            
+            paddle_up() ;
 
-		else if ( c == 'm' )           
+		else if ( c == 'm' )             
             paddle_down() ;       
 	}
 
-	wrap_up();
+    wrap_up();
 	
     return 0;
 }
@@ -70,13 +71,13 @@ int main()
 
 static void set_up()
 {
-	initscr();		                               // turn on curses	
-	noecho();		                               // turn off echo	
-	cbreak();		                               // turn off buffering	
-    curs_set(0);                                   // make cursor invisible
+	initscr();		            // turn on curses	
+	noecho();		            // turn off echo	
+	cbreak();		            // turn off buffering	
+    curs_set(0);                // make cursor invisible
     
-    putUpWalls();                                  // set up court     
-    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );  
+    putUpWalls();               // set up court     
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );   
 	
     signal( SIGINT, SIG_IGN );	// ignore SIGINT		
 }
@@ -91,16 +92,16 @@ static void serve()
     {
         the_ball.y_count = the_ball.y_delay = Y_MIN ;       // force y min speed
     }
-	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;  // start x speed
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ; // start x speed
 	the_ball.y_dir = 1 ;
 	the_ball.x_dir = 1 ;
 	the_ball.symbol = DFL_SYMBOL ;
     
-    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);	
+    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
 	refresh();
 	
 	signal( SIGALRM, ball_move );
-	set_ticker( 1000 / TICKS_PER_SEC );	              // send millisecs per tick
+	set_ticker( 1000 / TICKS_PER_SEC );	          // send millisecs per tick 
 }
 
 /* *
@@ -111,6 +112,12 @@ static void serve()
  */
 static void putUpWalls()
 {       
+    // TODO: check that BORDR_SIZE doesn't exceed screen dimensions
+    // e.g., if (3 rows + 2 * BORDR_SIZE ) > LINES
+    //          || ( 3 cols + 2 * BORDR_SIZE ) > COLS ... some error ... ?
+    // (you want the border, height of the paddle and space for the ball to go
+    // through so can lose the game; doesn't need to handle screen sizes)
+    
     // print top border
     move( BORDR_SIZE, BORDR_SIZE );
     for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
@@ -138,7 +145,7 @@ static void putUpWalls()
 static void wrap_up()
 {
 	set_ticker( 0 );
-	endwin();		                             // put back to normal	
+	endwin();	               	// put back to normal	
 }
 
 /* *
@@ -179,9 +186,9 @@ static void ball_move()
  */
 void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
 {
-    int save_y, save_x, ret_value;
+    int save_y, save_x, ret_value;    
     
-    getyx( stdscr, save_y, save_x );       // save cursor location    
+    getyx( stdscr, save_y, save_x );            // save cursor location    
     
     ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
 
@@ -191,24 +198,24 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
             reset();
         else
             game_over();
-        return;                            // TODO: returning correct?
+        return;                               // TODO: returning correct?
     }
 
     if ( ret_value == BOUNCE ) {
-        if ( y_moved )                     // "bounce" in opposite dir
+        if ( y_moved )                        // "bounce" in opposite dir
             the_ball.y_pos += the_ball.y_dir * 2;
         if ( x_moved )	
             the_ball.x_pos += the_ball.x_dir * 2;
-        if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != 0 ) { 
-            the_ball.y_pos = y_cur;        // hit another boundary, back to cur 
+        if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != NO_HIT ) { 
+            the_ball.y_pos = y_cur;       // hit another boundary, back to cur 
             the_ball.x_pos = x_cur;       
         }                    
     }
 
     mvaddch( y_cur, x_cur, BLANK );
-    mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );    
-   
-    move( save_y, save_x );                // return cursor
+    mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
+    
+    move( save_y, save_x );                // return cursor	
     
     refresh();
 }
@@ -221,6 +228,12 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
  */
 static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 {
+    // TODO: hit the paddle then went below bottom row with breaking the barrier
+
+    // TODO: hitting bottom of paddle works and so does hitting the top (just fyi)
+
+    // TODO: bouncing from lower left corner worked (just fyi)
+    
     if ( bp->x_pos == RIGHT_EDGE + 1 )
         return LOSE; 
 
@@ -230,50 +243,58 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
     else if ( edge_bounce( bp ) )
         return BOUNCE;
 
-    else if ( bp->x_pos == RIGHT_EDGE ) {
+    else if ( bp->x_pos == RIGHT_EDGE )
+    {
         int ret_value = paddle_contact( bp->y_pos, bp->x_pos );       
         
         if ( ret_value == PADD_MIDDLE ) { 
             padd_middle_hit( &the_ball );
             return BOUNCE;
         }
-        else if ( ( ret_value == PADD_TOP ) || ( ret_value == PADD_BOTTOM ) ) {
-            padd_ends_hit( y_moved, x_moved, ret_value );   
+        else if ( ret_value == PADD_TOP ) {
+            padd_top_hit( &the_ball, y_moved, x_moved );   
             return BOUNCE;
-        }       
+        }
+        else if ( ret_value == PADD_BOTTOM ) {
+            padd_bottom_hit( &the_ball, y_moved, x_moved ); 
+            return BOUNCE;
+        }        
     }   
 
 	return NO_HIT;
 }
 
-static int corner_bounce( struct ppball *bp )
-{
-    if ( ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) 
-        || ( bp->y_pos == BOT_ROW && bp->x_pos == LEFT_EDGE ) )
-    {
-		bp->y_dir = bp->y_dir * -1,
-        bp->x_dir = bp->x_dir * -1;
+static int corner_bounce( struct ppball *bp ) {
+    if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = 1, bp->x_dir = 1;
         return BOUNCE;        
     }
-    
-    else if ( ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE )
-            || ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE ) )
-    {   
-        if ( ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MIN_TOP )
-            || ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MAX_BOT ) )
-        {
-            bp->y_dir = bp->y_dir * -1,           // corner bounce
-            bp->x_dir = bp->x_dir * -1;                    
-            
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = -1, bp->x_dir = 1;
+        return BOUNCE;
+    }
+    else if ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE ) {   
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MIN_TOP ) {
+            bp->y_dir = 1, bp->x_dir = -1;        // corner bounce            
             bp->x_delay = ( rand() % X_MAX );     // chg x speed
             if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // chg y speed
                 bp->y_delay = Y_MIN;              
         }
         else 
-            bp->y_dir = bp->y_dir * -1;           // up and down bounce
-        
+            bp->y_dir = 1;                        // up and down bounce
         return BOUNCE;
-    }            
+    }        
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE ) {   
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MAX_BOT ) {
+            bp->y_dir = -1, bp->x_dir = -1;       // corner bounce            
+            bp->x_delay = ( rand() % X_MAX );     // chg x speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN ) // chg y speed
+                bp->y_delay = Y_MIN;              
+        }
+        else 
+            bp->y_dir = -1;                       // up and down bounce
+        return BOUNCE;
+    }
     return NO_HIT;   
 }
 
@@ -281,13 +302,19 @@ static int edge_bounce( struct ppball * bp )
 {
     if ( bp->x_pos == LEFT_EDGE )
     {
-		bp->x_dir = bp->x_dir * -1;
+		bp->x_dir = 1;
         return BOUNCE;     
     }
     
-    else if ( ( bp->y_pos == TOP_ROW ) || ( bp->y_pos == BOT_ROW ) )
+    else if ( bp->y_pos == TOP_ROW )
     {
-        bp->y_dir = bp->y_dir * -1;
+        bp->y_dir = 1;
+        return BOUNCE;
+    }
+    
+    else if ( bp->y_pos == BOT_ROW )
+    {
+        bp->y_dir = -1;
         return BOUNCE;
     }
 
@@ -296,46 +323,64 @@ static int edge_bounce( struct ppball * bp )
 
 static void padd_middle_hit( struct ppball * bp )
 {
-    bp->x_dir = bp->x_dir * -1;
-    
+    bp->x_dir = -1;
     bp->x_delay = ( rand() % X_MAX );                     // change x speed
     if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )   // change y speed
         bp->y_delay = Y_MIN;                              // force y min
 }
 
-static void padd_ends_hit( int y_moved, int x_moved, int end )
+static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
 {
-    if ( y_moved && !x_moved )                   // hit top or bottom surface
+    if ( y_moved && !x_moved )                   // hit top surface of paddle?
     {
-        the_ball.y_dir = the_ball.y_dir * -1;
+        bp->y_dir = -1;
         return;
-    }  
+    }           
 
-    the_ball.x_delay = ( rand() % X_MAX );       // change x and y speed
-    if ( ( the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN ) 
-        the_ball.y_delay = Y_MIN;                              
-                                                 // hit corner of paddle?
-    if ( ( y_moved && x_moved && the_ball.y_dir == 1 && end == PADD_TOP )
-       || ( y_moved && x_moved && the_ball.y_dir == -1 && end == PADD_BOTTOM ) )
+    bp->x_delay = ( rand() % X_MAX );            // change x speed
+    if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )   // change y speed
+        bp->y_delay = Y_MIN;                     // force y min
+
+    if ( y_moved && x_moved && bp->y_dir == 1 )  // hit corner of paddle?
     {       
-        the_ball.y_dir = the_ball.y_dir * -1;
-        the_ball.x_dir = the_ball.x_dir * -1;
+        bp->y_dir = -1;
+        bp->x_dir = -1;
     }
 
     else                                         // else hit left face of paddle
-        the_ball.x_dir = the_ball.x_dir * -1;
+        bp->x_dir = -1;
+}
+
+static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
+{
+    if ( y_moved && !x_moved )                  // hit bottom surface of paddle? 
+    {
+        bp->y_dir = 1; 
+        return;
+    }              
+
+    bp->x_delay = ( rand() % X_MAX );            // change x speed
+    if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // change y speed
+        bp->y_delay = Y_MIN;                     // force y min
+
+    if ( y_moved && x_moved && bp->y_dir == -1 )   // hit corner of paddle?
+    {   bp->y_dir = 1;                
+        bp->x_dir = -1;                
+    }
+
+    else                                      // else hit left face of paddle
+        bp->x_dir = -1;                
 }
 
 static void reset()
 {
     clear();
-    set_up();                                    // reinitialize all stuff
-    serve();                                     // start up ball again
+    set_up();                               // reinitialize all stuff
+    serve();                                // start up ball again 
     balls_left--;
 }
 
 static void game_over()
 {
-    clear();
-    // TODO: keep paddle from still being able to be drawn
+
 }

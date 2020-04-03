@@ -7,7 +7,7 @@
 
 #define BLANK         ' '
 #define	PAD_SYMBOL    '#'
-#define PAD_HEIGHT     4
+#define PAD_HEIGHT     6
 
 #define NO_CONTACT     0
 #define PADD_TOP       1
