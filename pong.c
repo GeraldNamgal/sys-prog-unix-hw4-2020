@@ -34,6 +34,8 @@ static int      edge_bounce( struct ppball * );
 static void     padd_middle_hit( struct ppball * );
 static void     padd_top_hit( struct ppball *, int, int );
 static void     padd_bottom_hit( struct ppball *, int, int );
+static void     up_paddle();
+static void     down_paddle();
 static void     reset();
 static void     game_over();
 
@@ -53,10 +55,10 @@ int main()
 	while ( ( c = getch() ) != 'Q' )
     {
 		if ( c == 'k' )            
-            paddle_up() ;
+            up_paddle() ;
 
 		else if ( c == 'm' )             
-            paddle_down() ;       
+            down_paddle() ;       
 	}
 
     wrap_up();
@@ -380,6 +382,18 @@ static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
 
     else                                         // else hit left face of paddle
         bp->x_dir = -1;                
+}
+
+static void up_paddle()
+{
+    paddle_up();
+    // TODO: bounce the ball other direction
+}
+
+static void down_paddle()
+{
+    paddle_down();
+    // TODO: bounce the ball other direction
 }
 
 static void reset()
