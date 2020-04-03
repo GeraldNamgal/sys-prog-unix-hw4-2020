@@ -28,9 +28,8 @@
 #define Y_MAX           13 // TODO (change #?): 20  /* max delay for y ball speed */
 
 #define NO_HIT           0
-#define UP_DOWN_HIT      1
-#define LEFT_RIGHT_HIT   2
-#define CORNER_HIT       3
+#define BOUNCE           1
+#define LOSE            -1
 
 /* *
  * TODO

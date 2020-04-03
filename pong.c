@@ -21,6 +21,7 @@
 struct ppball the_ball;
 
 static bool moving_paddle = false;
+static int  balls_left = 3;
 
 static void	    set_up();
 static void     putUpWalls();
@@ -29,6 +30,13 @@ static void     ball_move();
 static void     wrap_up();
 static int      bounce_or_lose( struct ppball *, int, int );
 static void     move_the_ball( int, int, int, int );
+static int      corner_bounce( struct ppball * );
+static int      edge_bounce( struct ppball * );
+static void     padd_middle_hit( struct ppball * );
+static void     padd_top_hit( struct ppball *, int, int );
+static void     padd_bottom_hit( struct ppball *, int, int );
+static void     reset();
+static void     game_over();
 
 /* *
  * main()
@@ -73,9 +81,11 @@ static void set_up()
 	initscr();		            /* turn on curses	*/
 	noecho();		            /* turn off echo	*/
 	cbreak();		            /* turn off buffering	*/
-    putUpWalls();               /* create court */
-    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );    
-	signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
+    
+    putUpWalls();               /* create court */    
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );   // paddle.c function 
+	
+    //signal( SIGINT, SIG_IGN );	/* ignore SIGINT	*/	
 }
 
 static void serve()
@@ -86,9 +96,9 @@ static void serve()
 	the_ball.x_pos = X_INIT;
     if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
     {
-        the_ball.y_count = the_ball.y_delay = Y_MIN ;
+        the_ball.y_count = the_ball.y_delay = Y_MIN ;       // force y min speed
     }
-	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ; // start x speed
 	the_ball.y_dir = 1 ;
 	the_ball.x_dir = 1 ;
 	the_ball.symbol = DFL_SYMBOL ;
@@ -107,13 +117,7 @@ static void serve()
  * rets: 
  */
 static void putUpWalls()
-{    
-    // TODO: check that BORDR_SIZE doesn't exceed screen dimensions
-    // e.g., if (3 rows + 2 * BORDR_SIZE ) > LINES
-    //          || ( 3 cols + 2 * BORDR_SIZE ) > COLS ... some error ... ?
-    // (you want the border, height of the paddle and space for the ball to go
-    // through so can lose the game; doesn't need to handle screen sizes)
-    
+{       
     // print top border
     move( BORDR_SIZE, BORDR_SIZE );
     for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
@@ -185,20 +189,28 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
     int save_y, save_x, ret_value;
     
     if ( moving_paddle == true )
-        getyx( stdscr, save_y, save_x );    // save cursor location
+        getyx( stdscr, save_y, save_x );    // save cursor location    
+    
+    ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
 
-    ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );     
+    if ( ret_value == LOSE )
+    {
+        if ( balls_left > 0 )
+            reset();
+        else
+            game_over();
+        return; // TODO: returning correct?
+    }
 
-    if ( ret_value == UP_DOWN_HIT || ret_value == LEFT_RIGHT_HIT
-        || ret_value == CORNER_HIT ) {
-            if ( y_moved )                  // "bounce" in opposite dir
-                the_ball.y_pos += the_ball.y_dir * 2;
-            if ( x_moved )	
-                the_ball.x_pos += the_ball.x_dir * 2;
-            if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != 0 ) { 
-                the_ball.y_pos = y_cur;     // hit another boundary, back to cur 
-                the_ball.x_pos = x_cur;       
-            }                    
+    if ( ret_value == BOUNCE ) {
+        if ( y_moved )                  // "bounce" in opposite dir
+            the_ball.y_pos += the_ball.y_dir * 2;
+        if ( x_moved )	
+            the_ball.x_pos += the_ball.x_dir * 2;
+        if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != 0 ) { 
+            the_ball.y_pos = y_cur;     // hit another boundary, back to cur 
+            the_ball.x_pos = x_cur;       
+        }                    
     }
 
     mvaddch( y_cur, x_cur, BLANK );
@@ -220,127 +232,144 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
  */
 static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 {
-	if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {
-		bp->y_dir = 1;
-        bp->x_dir = 1;
-        return CORNER_HIT;        
-    }
-    else if ( bp->y_pos == BOT_ROW && bp->x_pos == LEFT_EDGE ) {
-		bp->y_dir = -1;
-        bp->x_dir = 1;
-        return CORNER_HIT;
-    }
-    else if ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE )    
-        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MIN_TOP ) {
-            bp->y_dir = 1;
-            bp->x_dir = -1;
-            return CORNER_HIT;
-        }
-        else {
-            bp->y_dir = 1;
-            return UP_DOWN_HIT;
-        }            
-    else if ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE )    
-        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MAX_BOT ) {
-            bp->y_dir = -1;
-            bp->x_dir = -1;
-            return CORNER_HIT;
-        }
-        else {
-            bp->y_dir = -1;
-            return UP_DOWN_HIT;
-        }      
-    else if ( bp->x_pos == LEFT_EDGE ) {
-		bp->x_dir = 1;
-        return LEFT_RIGHT_HIT;     
-    }
+    if ( bp->x_pos == RIGHT_EDGE + 1 )
+        return LOSE; 
+
+    else if ( corner_bounce( bp ) )
+        return BOUNCE;
     
-    // TODO: need to make sure you change direction on bounces and for paddle
-    // hits that you change the speed to a rand() one (double check the paddle
-    // ones especially)
+    else if ( edge_bounce( bp ) )
+        return BOUNCE;
 
-    // TODO: hit the paddle then went below bottom row with breaking the barrier
-
-    // TODO: hitting bottom of paddle works and so does hitting the top (just fyi)
-
-    // TODO: bouncing from lower left corner worked (just fyi)
-
-    else if ( bp->x_pos == RIGHT_EDGE ) {
-        if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_MIDDLE ) {
-            bp->x_dir = -1;
-            bp->x_delay = ( rand() % X_MAX );         // change speed
-            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
-                bp->y_delay = Y_MIN;
-            return LEFT_RIGHT_HIT;
+    else if ( bp->x_pos == RIGHT_EDGE ) {       
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_MIDDLE ) { 
+            padd_middle_hit( &the_ball );
+            return BOUNCE;
         }
-
         else if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_TOP ) {
-            if ( y_moved && !x_moved ) {
-                bp->y_dir = -1;
-                return UP_DOWN_HIT;
-            }
-
-            bp->x_delay = ( rand() % X_MAX );   // change speed
-            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
-                bp->y_delay = Y_MIN;
-
-            if ( y_moved && x_moved && bp->y_dir == 1 ) {
-                bp->y_dir = -1;
-                bp->x_dir = -1;
-                return CORNER_HIT;
-            }
-
-            else {
-                bp->x_dir = -1;
-                return LEFT_RIGHT_HIT;
-            }
+            padd_top_hit( &the_ball, y_moved, x_moved );   
+            return BOUNCE;
         }
-
         else if ( paddle_contact( bp->y_pos, bp->x_pos ) == PADD_BOTTOM ) {
-            if ( y_moved && !x_moved ) {
-                bp->y_dir = 1;
-                return UP_DOWN_HIT;
-            }
-
-            bp->x_delay = ( rand() % X_MAX );     // change speed
-            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
-                bp->y_delay = Y_MIN;
-
-            if ( y_moved && x_moved && bp->y_dir == -1 ) {
-                bp->y_dir = 1;
-                bp->x_dir = -1;
-                return CORNER_HIT;
-            }
-
-            else {
-                bp->x_dir = -1;
-                return LEFT_RIGHT_HIT;
-            }
-        }
-
-        // TODO: corner hits on borders occur with right edge only when paddle
-        // is flush with either top or bottom border
-        
-        // TODO: to know if corner hit on paddle, look at the y direction of the
-        // ball. For instance, if it hit the bottom of paddle and y dir was +1
-        // and it wasn't in the same column as the paddle, then it was a corner
-        // hit on the paddle
-
-        // TODO: when you change the ball's direction, need to consider if moving
-        // it backward won't make it hit another boundary, e.g, from border wall
-        // to paddle and vice-versa (could "stuck" the ball as a legal move)
-
-        // TODO: can change the orientation at the beginning of ball_move instead
-        // of at the end?
-    }
-    else if ( bp->y_pos == TOP_ROW ) {
-        bp->y_dir = 1;
-        return UP_DOWN_HIT;
-    }
-    else if ( bp->y_pos == BOT_ROW ) {
-        bp->y_dir = -1;
-        return UP_DOWN_HIT;
-    }
+            padd_bottom_hit( &the_ball, y_moved, x_moved ); 
+            return BOUNCE;
+        }        
+    }   
 
 	return NO_HIT;
+}
+
+static int corner_bounce( struct ppball *bp ) {
+    if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = 1, bp->x_dir = 1;
+        return BOUNCE;        
+    }
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == LEFT_EDGE ) {
+		bp->y_dir = -1, bp->x_dir = 1;
+        return BOUNCE;
+    }
+    else if ( bp->y_pos == TOP_ROW && bp->x_pos == RIGHT_EDGE ) {   
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MIN_TOP ) {
+            bp->y_dir = 1, bp->x_dir = -1;        // corner bounce            
+            bp->x_delay = ( rand() % X_MAX );     // chg x speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // chg y speed
+                bp->y_delay = Y_MIN;              
+        }
+        else 
+            bp->y_dir = 1;                        // up and down bounce
+        return BOUNCE;
+    }        
+    else if ( bp->y_pos == BOT_ROW && bp->x_pos == RIGHT_EDGE ) {   
+        if ( paddle_contact( bp->y_pos, bp->x_pos ) == AT_MAX_BOT ) {
+            bp->y_dir = -1, bp->x_dir = -1;       // corner bounce            
+            bp->x_delay = ( rand() % X_MAX );     // chg x speed
+            if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN ) // chg y speed
+                bp->y_delay = Y_MIN;              
+        }
+        else 
+            bp->y_dir = -1;                       // up and down bounce
+        return BOUNCE;
+    }
+    return NO_HIT;   
+}
+
+static int edge_bounce( struct ppball * bp )
+{
+    if ( bp->x_pos == LEFT_EDGE )
+    {
+		bp->x_dir = 1;
+        return BOUNCE;     
+    }
+    
+    else if ( bp->y_pos == TOP_ROW )
+    {
+        bp->y_dir = 1;
+        return BOUNCE;
+    }
+    
+    else if ( bp->y_pos == BOT_ROW )
+    {
+        bp->y_dir = -1;
+        return BOUNCE;
+    }
+
+    return NO_HIT;
+}
+
+static void padd_middle_hit( struct ppball * bp )
+{
+    bp->x_dir = -1;
+    bp->x_delay = ( rand() % X_MAX );                     // change x speed
+    if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )   // change y speed
+        bp->y_delay = Y_MIN;                              // force y min
+}
+
+static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
+{
+    if ( y_moved && !x_moved )
+        bp->y_dir = -1;           
+
+    bp->x_delay = ( rand() % X_MAX );                     // change x speed
+    if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )   // change y speed
+        bp->y_delay = Y_MIN;                              // force y min
+
+    if ( y_moved && x_moved && bp->y_dir == 1 ) {       // hit corner of paddle?
+        bp->y_dir = -1;
+        bp->x_dir = -1;
+    }
+
+    else                                      // else hit left face of paddle
+        bp->x_dir = -1;
+}
+
+static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
+{
+    if ( y_moved && !x_moved )             // hit bottom surface of paddle? 
+        bp->y_dir = 1;               
+
+    bp->x_delay = ( rand() % X_MAX );                    // change x speed
+    if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // change y speed
+        bp->y_delay = Y_MIN;                             // force y min
+
+    if ( y_moved && x_moved && bp->y_dir == -1 ) {  // hit corner of paddle?
+        bp->y_dir = 1;                
+        bp->x_dir = -1;                
+    }
+
+    else                                      // else hit left face of paddle
+        bp->x_dir = -1;                
+}
+
+static void reset()
+{
+    clear();
+    set_up();           // initialize all stuff
+    serve();            // start up ball  
+    balls_left--;
+}
+
+static void game_over()
+{
+    clear();
+    // TODO: keep paddle from still being able to be drawn
 }
