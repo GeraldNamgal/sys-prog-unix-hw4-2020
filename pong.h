@@ -27,9 +27,10 @@
 #define Y_MIN            7 // TODO (change #?): 7   /* min delay for y ball speed */
 #define Y_MAX           13 // TODO (change #?): 20  /* max delay for y ball speed */
 
+#define OFF_SCREEN      -2
+#define LOST            -1
 #define NO_HIT           0
 #define BOUNCE           1
-#define LOSE            -1
 #define BALL_BELOW       2
 #define BALL_ABOVE       3
 
