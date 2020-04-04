@@ -250,12 +250,12 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 
     // TODO: bouncing from lower left corner worked (just fyi)
     
-    if ( bp->x_pos >= RIGHT_EDGE + 1 )  // TODO: change lose edge back after debugging
-        return LOST;
-
-    else if ( bp->x_pos >= RIGHT_EDGE + 6 )
+    if ( bp->x_pos == COLS + 1)
         return OFF_SCREEN;
-    // TODO
+
+    else if ( bp->x_pos >= RIGHT_EDGE + 1 )  // TODO: change lose edge back after debugging
+        return LOST;   
+    
     else if ( y_moved == 0 && x_moved == 0 )     // paddle move (ball stays put)
     {
         if ( paddle_contact( bp->y_pos + 1, bp->x_pos ) != NO_CONTACT ) 
