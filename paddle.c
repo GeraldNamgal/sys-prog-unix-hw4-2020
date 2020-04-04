@@ -14,7 +14,7 @@ void paddle_init( int x_pos, int y_max, int y_min )
     //       < LINES - 2 * BORDR_SIZE - 2
 
     paddle.pad_top = ( y_max + y_min ) / 2;            // to center of y range    
-    paddle.pad_top = 12; // TODO: change back after debugging -- paddle.pad_top - PAD_HEIGHT / 2;  // acct for paddle height
+    paddle.pad_top = paddle.pad_top - PAD_HEIGHT / 2;  // acct for paddle height
     paddle.pad_bot = paddle.pad_top + PAD_HEIGHT - 1;
     paddle.pad_col = x_pos;
     paddle.pad_char = PAD_SYMBOL;

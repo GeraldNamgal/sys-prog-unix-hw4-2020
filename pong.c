@@ -88,23 +88,16 @@ static void serve()
 {
     // TODO: change the initial position to something calculated
 
-    the_ball.y_pos = TOP_ROW + 8; // TODO: change after debugging -- Y_INIT;                         // ball's initial positions
-	the_ball.x_pos = RIGHT_EDGE - 6; // TODO: change after debugging -- X_INIT;
+    the_ball.y_pos = Y_INIT;                         // ball's initial positions
+	the_ball.x_pos = X_INIT;
                                                                 // ball y speed:
-    
-    // TODO: restore after debugging --
-    the_ball.y_count = the_ball.y_delay = 30;
-    the_ball.x_count = the_ball.x_delay = 30;
-    #if 0
     if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
     {
         the_ball.y_count = the_ball.y_delay = Y_MIN ;      
     }
 	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
-	#endif
-
-    // TODO: restore these to 1 after debugging --
-    the_ball.y_dir = -1 ;                                   // ball's directions
+	
+    the_ball.y_dir = 1 ;                                    // ball's directions
 	the_ball.x_dir = 1 ;
 	
     the_ball.symbol = DFL_SYMBOL ;                         // ball's char symbol
