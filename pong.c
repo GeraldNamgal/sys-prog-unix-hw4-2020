@@ -78,8 +78,8 @@ static void set_up()
 	cbreak();		                                       // turn off buffering	
     curs_set(0);                                        // make cursor invisible
     
-    putUpWalls();                                                // set up court     
-    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );   
+    putUpWalls();                                                  // draw court     
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );                  // draw paddle
 	
     signal( SIGINT, SIG_IGN );	                                // ignore SIGINT		
 }
@@ -88,23 +88,32 @@ static void serve()
 {
     // TODO: change the initial position to something calculated
 
-    the_ball.y_pos = Y_INIT;                                // initial positions
-	the_ball.x_pos = X_INIT;
+    the_ball.y_pos = 18; // TODO: change after debugging -- Y_INIT;                         // ball's initial positions
+	the_ball.x_pos = RIGHT_EDGE; // TODO: change after debugging -- X_INIT;
                                                                 // ball y speed:
+    
+    // TODO: restore after debugging --
+    the_ball.y_count = the_ball.y_delay = 10;
+    the_ball.x_count = the_ball.x_delay = 1000;
+    #if 0
     if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
     {
         the_ball.y_count = the_ball.y_delay = Y_MIN ;      
     }
 	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
-	the_ball.y_dir = 1 ;
+	#endif
+
+    // TODO: restore these to 1 after debugging --
+    the_ball.y_dir = 1 ;                                    // ball's directions
 	the_ball.x_dir = 1 ;
-	the_ball.symbol = DFL_SYMBOL ;
+	
+    the_ball.symbol = DFL_SYMBOL ;                         // ball's char symbol
     
-    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);   // move and draw
+    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);       // draw ball
 	refresh();
 	
-	signal( SIGALRM, ball_move );
-	set_ticker( 1000 / TICKS_PER_SEC );	              // send millisecs per tick 
+	signal( SIGALRM, ball_move );                          // set signal handler
+	set_ticker( 1000 / TICKS_PER_SEC );	               // set millisecs per tick 
 }
 
 /* *
@@ -161,25 +170,26 @@ static void ball_move()
 	int	y_cur, x_cur, y_moved, x_moved;
 
 	signal( SIGALRM , SIG_IGN );		                  // dont get caught now 	
-	y_cur = the_ball.y_pos;                                          // old spot 
+	
+    y_cur = the_ball.y_pos;                                          // old spot 
     x_cur = the_ball.x_pos;   
-	y_moved = 0;
+	y_moved = 0;                                                 // set up flags
     x_moved = 0 ;
 
 	if ( --the_ball.y_count < 0 ) {
-		the_ball.y_pos += the_ball.y_dir ;	                             // move	
-		the_ball.y_count = the_ball.y_delay ;                           // reset
-		y_moved = 1;
+		the_ball.y_pos += the_ball.y_dir ;	                       // move y dir
+		the_ball.y_count = the_ball.y_delay ;                     // reset count
+		y_moved = 1;                                            // flag movement
 	}
 
 	if ( --the_ball.x_count < 0 ) { 
-		the_ball.x_pos += the_ball.x_dir ;                               // move	
-		the_ball.x_count = the_ball.x_delay ;	                        // reset
-		x_moved = 1;
+		the_ball.x_pos += the_ball.x_dir ;                         // move x dir	
+		the_ball.x_count = the_ball.x_delay ;	                  // reset count
+		x_moved = 1;                                            // flag movement
 	}
 
-	if ( y_moved || x_moved )
-        move_the_ball( y_cur, x_cur, y_moved, x_moved );
+	if ( y_moved || x_moved )                                     // ball moved?
+        move_the_ball( y_cur, x_cur, y_moved, x_moved );      
         	
     signal(SIGALRM, ball_move);		                        // re-enable handler	
 }
@@ -209,8 +219,9 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
             the_ball.y_pos += the_ball.y_dir * 2;
         if ( x_moved )	
             the_ball.x_pos += the_ball.x_dir * 2;
+                                                       // hit another boundary?:
         if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != NO_HIT ) { 
-            the_ball.y_pos = y_cur;         // hit another boundary, back to cur 
+            the_ball.y_pos = y_cur;                          // move back to cur 
             the_ball.x_pos = x_cur;       
         }                    
     }
@@ -237,16 +248,16 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 
     // TODO: bouncing from lower left corner worked (just fyi)
     
-    if ( bp->x_pos == RIGHT_EDGE + 2 )
+    if ( bp->x_pos >= RIGHT_EDGE + 1 )
         return LOSE;
 
     // TODO
-    else if ( y_moved == 0 && x_moved == 0 )     // ball stays put, paddle moves
+    else if ( y_moved == 0 && x_moved == 0 )     // paddle move (ball stays put)
     {
         if ( paddle_contact( bp->y_pos + 1, bp->x_pos ) != NO_CONTACT ) 
-            return BALL_ABOVE;                              // paddle below ball
+            return BALL_ABOVE;                           // paddle is below ball
         if ( paddle_contact( bp->y_pos - 1, bp->x_pos ) != NO_CONTACT ) 
-            return BALL_BELOW;                              // paddle above ball
+            return BALL_BELOW;                           // paddle is above ball
     } 
 
     else if ( corner_bounce( bp ) )
@@ -346,7 +357,7 @@ static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
     if ( y_moved && !x_moved )                     // hit top surface of paddle?
     {
         bp->y_dir = -1;
-        return;
+        return;                                                        // return
     }           
 
     bp->x_delay = ( rand() % X_MAX );                          // change x speed
@@ -386,14 +397,42 @@ static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
 
 static void up_paddle()
 {
-    paddle_up();
-    // TODO: bounce the ball other direction
+    if ( bounce_or_lose( &the_ball, 0, 0 ) == BALL_ABOVE )
+    {
+        the_ball.y_dir = -1;                         // bounce/change ball's dir
+        
+        if ( the_ball.y_pos != TOP_ROW + 1 )      // if ball is not at y min top
+        {
+            mvaddch(the_ball.y_pos, the_ball.x_pos, BLANK);  // move/redraw ball
+            the_ball.y_pos += the_ball.y_dir ; 
+            mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
+            
+            paddle_up();                                      // move the paddle
+        }     
+    }
+
+    else
+        paddle_up();
 }
 
 static void down_paddle()
 {
-    paddle_down();
-    // TODO: bounce the ball other direction
+    if ( bounce_or_lose( &the_ball, 0, 0 ) == BALL_BELOW )
+    {
+        the_ball.y_dir = 1;                          // bounce/change ball's dir
+        
+        if ( the_ball.y_pos != BOT_ROW - 1 )   // if ball is not at y max bottom
+        {
+            mvaddch(the_ball.y_pos, the_ball.x_pos, BLANK);  // move/redraw ball
+            the_ball.y_pos += the_ball.y_dir ;
+            mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);   
+            
+            paddle_down();                                    // move the paddle        
+        } 
+    }
+
+    else
+        paddle_down();
 }
 
 static void reset()

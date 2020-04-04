@@ -7,7 +7,7 @@
 
 #define BLANK         ' '
 #define	PAD_SYMBOL    '#'
-#define PAD_HEIGHT     6
+#define PAD_HEIGHT     4
 
 #define NO_CONTACT     0
 #define PADD_TOP       1
@@ -15,8 +15,6 @@
 #define PADD_BOTTOM    3
 #define AT_MIN_TOP     4
 #define AT_MAX_BOT     5
-#define BALL_BELOW     6
-#define BALL_ABOVE     7
 
 struct pppaddle { int   pad_top, pad_bot, pad_col;
                   char  pad_char;
