@@ -50,20 +50,3 @@ int set_ticker( int n_msecs )
 	}
 	return 0;
 }
-
-// TODO: need these or delete?
-#if 0
-static void my_handler();
-
-void millisleep( int n )
-{
-	signal( SIGALRM , my_handler);	/* set handler		*/
-	set_ticker( n );			/* set alarm timer	*/
-	pause();				/* wait for sigalrm	*/
-}
-
-static void my_handler()
-{
-	set_ticker( 0 );			/* turns off ticker */
-}
-#endif

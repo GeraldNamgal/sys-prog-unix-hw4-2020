@@ -8,4 +8,3 @@
  */
 
 int set_ticker(int);
-// TODO: need or delete? -- void millisleep(int);

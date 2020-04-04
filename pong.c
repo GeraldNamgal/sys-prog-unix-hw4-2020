@@ -89,15 +89,15 @@ static void serve()
     // TODO: change the initial position to something calculated
 
     the_ball.y_pos = Y_INIT;                         // ball's initial positions
-	the_ball.x_pos = X_INIT;
+	the_ball.x_pos = X_INIT;    
                                                                 // ball y speed:
     if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
     {
         the_ball.y_count = the_ball.y_delay = Y_MIN ;      
     }
-	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
-	
-    the_ball.y_dir = 1 ;                                   // ball's directions
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed	
+
+    the_ball.y_dir = 1 ;                                    // ball's directions
 	the_ball.x_dir = 1 ;
 	
     the_ball.symbol = DFL_SYMBOL ;                         // ball's char symbol
@@ -198,13 +198,13 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
     
     ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
 
-    if ( ret_value == OFF_SCREEN )                                            // lost?
+    if ( ret_value == OFF_SCREEN )                      // ball moved off screen                          
     {
         if ( balls_left > 0 )
-            reset();
+            reset();                                // reset and start new round
         else
-            game_over();
-        return;                                      // TODO: returning correct?
+            game_over();                                            // game over
+        return;                                      
     }
 
     if ( ret_value == BOUNCE ) {
@@ -351,12 +351,9 @@ static void padd_middle_hit( struct ppball * bp )
 static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
 {
     if ( y_moved && !x_moved )                     // hit top surface of paddle?
-    {
-        bp->y_dir = -1;
-        return;                                                        // return
-    }           
+        bp->y_dir = -1;   
 
-    if ( y_moved && x_moved && bp->y_dir == 1 )         // hit corner of paddle?
+    else if ( y_moved && x_moved && bp->y_dir == 1 )    // hit corner of paddle?
     {       
         bp->y_dir = -1;
         bp->x_dir = -1;
@@ -374,14 +371,12 @@ static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
 
 static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
 {
-    if ( y_moved && !x_moved )                  // hit bottom surface of paddle? 
-    {
-        bp->y_dir = 1; 
-        return;                                                        // return
-    }              
+    if ( y_moved && !x_moved )                  // hit bottom surface of paddle?
+        bp->y_dir = 1;                                                                      
 
-    if ( y_moved && x_moved && bp->y_dir == -1 )        // hit corner of paddle?
-    {   bp->y_dir = 1;                
+    else if ( y_moved && x_moved && bp->y_dir == -1 )   // hit corner of paddle?
+    {   
+        bp->y_dir = 1;                
         bp->x_dir = -1;                
     }
 
@@ -408,7 +403,13 @@ static void up_paddle()
             mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);
             
             paddle_up();                                      // move the paddle
-        }     
+        }
+
+        the_ball.x_delay = ( rand() % X_MAX );                    // chg x speed
+        if ( ( the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // chg y speed
+            the_ball.y_delay = Y_MIN;                
+
+        the_ball.x_count = 0, the_ball.y_count = 0;         // force  countdowns     
     }
 
     else
@@ -428,7 +429,13 @@ static void down_paddle()
             mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);   
             
             paddle_down();                                    // move the paddle        
-        } 
+        }
+
+        the_ball.x_delay = ( rand() % X_MAX );                    // chg x speed
+        if ( ( the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )  // chg y speed
+            the_ball.y_delay = Y_MIN;                
+
+        the_ball.x_count = 0, the_ball.y_count = 0;         // force  countdowns 
     }
 
     else
