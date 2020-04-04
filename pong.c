@@ -97,7 +97,7 @@ static void serve()
     }
 	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
 	
-    the_ball.y_dir = 1 ;                                    // ball's directions
+    the_ball.y_dir = 1 ;                                   // ball's directions
 	the_ball.x_dir = 1 ;
 	
     the_ball.symbol = DFL_SYMBOL ;                         // ball's char symbol
