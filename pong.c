@@ -243,17 +243,11 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
  * rets: 1 if a bounce happened, 0 if not
  */
 static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
-{
-    // TODO: hit the paddle then went below bottom row with breaking the barrier
-
-    // TODO: hitting bottom of paddle works and so does hitting the top (just fyi)
-
-    // TODO: bouncing from lower left corner worked (just fyi)
-    
+{    
     if ( bp->x_pos == COLS + 1)
         return OFF_SCREEN;
 
-    else if ( bp->x_pos >= RIGHT_EDGE + 1 )  // TODO: change lose edge back after debugging
+    else if ( bp->x_pos >= RIGHT_EDGE + 1 )
         return LOST;   
     
     else if ( y_moved == 0 && x_moved == 0 )     // paddle move (ball stays put)
