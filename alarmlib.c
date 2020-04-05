@@ -45,7 +45,7 @@ int set_ticker( int n_msecs )
 	new_timeset.it_value.tv_usec    = n_usecs ;	/* and this 	*/
 
 	if ( setitimer( ITIMER_REAL, &new_timeset, &old_timeset ) != 0 ){
-		printf("Error with timer..errno=%d\n", errno );
+		fprintf(stderr, "Error with timer..errno=%d\n", errno );
 		return -1;
 	}
 	return 0;

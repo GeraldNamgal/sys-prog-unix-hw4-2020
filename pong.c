@@ -17,15 +17,22 @@
 #include	"alarmlib.h"
 #include    <stdlib.h>
 #include    "paddle.h"
+#include	<errno.h>
 
 struct ppball the_ball;
+struct sigaction sa;
 
-static int  balls_left = 2;
+static int      balls_left = TOTAL_BALLS - 1;
+static int      mins = 0,
+                secs = 0,
+                clock_ticks = 0,
+                interval_ticks = 0,
+                interval_secs = 0;
 
 static void	    set_up();
 static void     putUpWalls();
 static void     serve();
-static void     ball_move();
+static void     ball_and_clock();
 static void     wrap_up();
 static int      bounce_or_lose( struct ppball *, int, int );
 static void     move_the_ball( int, int, int, int );
@@ -36,8 +43,9 @@ static void     padd_top_hit( struct ppball *, int, int );
 static void     padd_bottom_hit( struct ppball *, int, int );
 static void     up_paddle();
 static void     down_paddle();
+static void     interval_output();
 static void     reset();
-static void     game_over();
+static void     game_over( char * );
 
 /* *
  * main()
@@ -49,8 +57,7 @@ int main()
 
     srand( getpid() );                   // use pid as seed for random generator 
 
-	set_up();                                            // initialize all stuff
-    serve();                                                    // start up ball    
+	set_up();                                            // initialize all stuff      
 
 	while ( ( c = getch() ) != 'Q' )
     {
@@ -71,42 +78,38 @@ int main()
  * init ppball struct, signal handler, curses
  */
 
-static void set_up()
-{
-	initscr();		                                           // turn on curses	
-	noecho();		                                            // turn off echo	
+static void set_up() {
+	if ( initscr() == NULL ) {                                 // turn on curses	
+        // TODO
+        fprintf(stderr, "pong: Error message...\n");
+        exit(1);
+    }
+    noecho();		                                            // turn off echo	
 	cbreak();		                                       // turn off buffering	
     curs_set(0);                                        // make cursor invisible
     
     putUpWalls();                                                  // draw court     
     paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );                  // draw paddle
-	
-    signal( SIGINT, SIG_IGN );	                                // ignore SIGINT		
-}
+                                                              // print top info:
+    mvprintw( TOP_ROW - 1, LEFT_EDGE + 1, "BALLS LEFT: %d", balls_left );
+    // TODO: 17 magic number too much?
+    mvprintw( TOP_ROW - 1, RIGHT_EDGE - 17, "TOTAL TIME: %d:%d", mins, secs );
 
-static void serve()
-{
-    // TODO: change the initial position to something calculated
-
-    the_ball.y_pos = Y_INIT;                         // ball's initial positions
-	the_ball.x_pos = X_INIT;    
-                                                                // ball y speed:
-    if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN )
-    {
-        the_ball.y_count = the_ball.y_delay = Y_MIN ;      
-    }
-	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed	
-
-    the_ball.y_dir = 1 ;                                    // ball's directions
-	the_ball.x_dir = 1 ;
-	
-    the_ball.symbol = DFL_SYMBOL ;                         // ball's char symbol
+    sigemptyset(&sa.sa_mask);                     // change sig handler settings
+    sa.sa_flags = SA_RESTART;
     
-    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);       // draw ball
-	refresh();
-	
-	signal( SIGALRM, ball_move );                          // set signal handler
-	set_ticker( 1000 / TICKS_PER_SEC );	               // set millisecs per tick 
+    interval_secs = INTERVAL_SECS;                      // for interval_output()
+    sa.sa_handler = interval_output;                       // set signal handler
+    if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
+        wrap_up();
+        fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
+        exit(1);
+    }
+    if ( set_ticker( 1000 / TICKS_PER_SEC ) == -1 ) {    // set ticker (ms/tick)
+        wrap_up();
+        fprintf(stderr, "pong: Error setting ticker: %d\n", errno);
+        exit(1);
+    }
 }
 
 /* *
@@ -117,23 +120,28 @@ static void serve()
  */
 static void putUpWalls()
 {       
-    // TODO: check that BORDR_SIZE doesn't exceed screen dimensions
-    // e.g., if (3 rows + 2 * BORDR_SIZE ) > LINES
-    //          || ( 3 cols + 2 * BORDR_SIZE ) > COLS ... some error ... ?
-    // (you want the border, height of the paddle and space for the ball to go
-    // through so can lose the game; doesn't need to handle screen sizes)
-    
+    if ( LINES < 10 )
+    {       
+        wrap_up();
+        fprintf(stderr, "pong: Height of window < 10 lines (enlarge window)\n");
+        exit(1);
+    }
+
+    if ( COLS < 40 )
+    {       
+        wrap_up();
+        fprintf(stderr, "pong: Width of window < 40 lines (enlarge window)\n");
+        exit(1);
+    }
+
     // print top border
     move( BORDR_SIZE, BORDR_SIZE );
     for (int i = BORDR_SIZE; i < COLS - BORDR_SIZE; i++)
         addch('-');
 
     // print left border
-    for ( int i = BORDR_SIZE + 1; i < LINES - BORDR_SIZE; i++ )
-    {        
-        move( i, BORDR_SIZE );
-        addch('|');
-    }
+    for ( int i = BORDR_SIZE + 1; i < LINES - BORDR_SIZE; i++ )      
+        mvaddch( i, BORDR_SIZE, '|' ); 
 
     // print bottom border
     move( LINES - BORDR_SIZE, BORDR_SIZE );
@@ -143,14 +151,63 @@ static void putUpWalls()
     refresh();
 }
 
-/* *
- *
- * stop ticker and curses
- */
-static void wrap_up()
+static void interval_output()
 {
-	set_ticker( 0 );
-	endwin();	               	                           // put back to normal	
+    if ( interval_ticks > TICKS_PER_SEC - 1 ) {
+        interval_ticks = 0;
+        interval_secs--;                                    
+    }
+
+    if (interval_secs == 0) {
+        mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2
+                    , "              ");                         // clear output
+        sa.sa_handler = SIG_IGN;                        // briefly ignore signal
+        if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
+            wrap_up();
+            fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
+            exit(1);
+        }
+        serve();                                                // start up ball 
+    }           
+    
+    else {
+        mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2
+                    , "GET READY... %d", interval_secs);
+        refresh();
+        interval_ticks++;
+    }    
+}
+
+static void serve()
+{
+    the_ball.y_pos = ( TOP_ROW + BOT_ROW ) / 2;      // ball's initial positions
+	the_ball.x_pos = ( LEFT_EDGE + RIGHT_EDGE ) / 2;    
+                                                                // ball y speed:
+    if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN ){
+        the_ball.y_count = the_ball.y_delay = Y_MIN ;      
+    }
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
+    
+    if ( rand() % 2 == 0 )                                  // ball's directions
+        the_ball.y_dir = 1;    
+    else {
+        the_ball.y_dir = -1;
+    }                                  
+	if ( rand() % 2 == 0 )
+        the_ball.x_dir = 1 ;
+    else
+	    the_ball.x_dir = -1 ;
+    
+    the_ball.symbol = DFL_SYMBOL ;                                  // draw ball   
+    mvaddch(the_ball.y_pos, the_ball.x_pos, the_ball.symbol);  
+    refresh();	
+    
+    sa.sa_handler = ball_and_clock;                        // set signal handler
+    if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
+        wrap_up();
+        fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
+        exit(1);
+    }                                        
 }
 
 /* *
@@ -158,33 +215,41 @@ static void wrap_up()
  * SIGARLM handler: decr directional counters, move when they hit 0
  * note: may have too much going on in this handler
  */
-static void ball_move()
-{
-	int	y_cur, x_cur, y_moved, x_moved;
-
-	signal( SIGALRM , SIG_IGN );		                  // dont get caught now 	
+static void ball_and_clock() {
+	int	y_cur, x_cur, y_moved, x_moved;	 	
 	
     y_cur = the_ball.y_pos;                                          // old spot 
     x_cur = the_ball.x_pos;   
 	y_moved = 0;                                                 // set up flags
     x_moved = 0 ;
 
+    if ( clock_ticks > TICKS_PER_SEC - 1 ) {
+        clock_ticks = 0;
+        ++secs;                                             
+    }
+    if ( secs > SECS_PER_MIN - 1 ) {
+        secs = 0;
+        ++mins;
+        mvprintw( TOP_ROW - 1, RIGHT_EDGE - 2, "  " );         // clear old time
+    }
+    // TODO: test this time out
+    if ( mins > TIME_LIMIT )
+        game_over("TIMED OUT");
+    mvprintw( TOP_ROW - 1, RIGHT_EDGE - 5, "%d:%d", mins, secs );
+    ++clock_ticks;
+
 	if ( --the_ball.y_count < 0 ) {
-		the_ball.y_pos += the_ball.y_dir ;	                       // move y dir
+		the_ball.y_pos += the_ball.y_dir ;	                  // move ball y dir
 		the_ball.y_count = the_ball.y_delay ;                     // reset count
 		y_moved = 1;                                            // flag movement
 	}
-
 	if ( --the_ball.x_count < 0 ) { 
-		the_ball.x_pos += the_ball.x_dir ;                         // move x dir	
+		the_ball.x_pos += the_ball.x_dir ;                    // move ball x dir	
 		the_ball.x_count = the_ball.x_delay ;	                  // reset count
 		x_moved = 1;                                            // flag movement
 	}
-
 	if ( y_moved || x_moved )                                     // ball moved?
-        move_the_ball( y_cur, x_cur, y_moved, x_moved );      
-        	
-    signal(SIGALRM, ball_move);		                        // re-enable handler	
+        move_the_ball( y_cur, x_cur, y_moved, x_moved );  	
 }
 
 /* *
@@ -203,11 +268,11 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
         if ( balls_left > 0 )
             reset();                                // reset and start new round
         else
-            game_over();                                            // game over
+            game_over("GAME OVER");                                 // game over
         return;                                      
     }
 
-    if ( ret_value == BOUNCE ) {
+    if ( ret_value == BOUNCE ) {                               // hit a boundary
         the_ball.y_pos = y_cur;                              // move back to cur 
         the_ball.x_pos = x_cur;
         if ( y_moved )                            // "bounce" in opposite dir(s)
@@ -216,7 +281,7 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
             the_ball.x_pos += the_ball.x_dir;
                                                        // hit another boundary?:
         if ( bounce_or_lose( &the_ball, y_moved, x_moved ) != NO_HIT ) { 
-            the_ball.y_pos = y_cur;                          // move back to cur 
+            the_ball.y_pos = y_cur;                   // move back to cur, stuck 
             the_ball.x_pos = x_cur;       
         }                    
     }
@@ -444,13 +509,60 @@ static void down_paddle()
 
 static void reset()
 {
-    clear();                                                     // clear screen
-    set_up();                                          // reinitialize all stuff
-    serve();                                              // start up ball again 
-    balls_left--;
+    sa.sa_handler = SIG_IGN;                            // briefly ignore signal
+    if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
+        wrap_up();
+        fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
+        exit(1);
+    }
+
+    clear();                                                     // clear screen    
+    putUpWalls();                                           // redraw everything     
+    paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );                  
+    mvprintw( TOP_ROW - 1, LEFT_EDGE + 1, "BALLS LEFT: %d", --balls_left );
+    mvprintw( TOP_ROW - 1, RIGHT_EDGE - 17, "TOTAL TIME: %d:%d", mins, secs );
+
+    interval_secs = INTERVAL_SECS;                      // for interval_output()
+    sa.sa_handler = interval_output;                    // change signal handler
+    if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
+        wrap_up();
+        fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
+        exit(1);
+    }
 }
 
-static void game_over()
+static void game_over( char *message )
 {
+    if ( set_ticker( 0 ) == -1 )
+    {
+        // TODO
+        fprintf(stderr, "pong: Error message...\n");
+        exit(1);
+    }
 
+    mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2
+                , "GAME OVER");
+    
+    refresh();
+}
+
+/* *
+ *
+ * stop ticker and curses
+ */
+static void wrap_up()
+{
+	if ( set_ticker( 0 ) == -1 )
+    {
+        // TODO
+        fprintf(stderr, "pong: Error message...\n");
+        exit(1);
+    }
+
+	if ( endwin() == ERR )     	                           // put back to normal	
+    {
+        // TODO
+        fprintf(stderr, "pong: Error message...\n");
+        exit(1);
+    }
 }
