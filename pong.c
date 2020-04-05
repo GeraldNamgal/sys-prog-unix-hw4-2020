@@ -97,8 +97,8 @@ static void set_up() {
 
     interval_secs = INTERVAL_SECS;                      // for interval_output()
 
-    sa.sa_handler = interval_output;              // change sig handler settings
-    sigemptyset(&sa.sa_mask);
+    sa.sa_handler = interval_output;                       // set signal handler
+    sigemptyset(&sa.sa_mask);                            // change some settings
     sa.sa_flags = SA_RESTART;    
     if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
         wrap_up();
@@ -161,6 +161,8 @@ static void interval_output()
     if (interval_secs == 0) {
         mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2
                     , "              ");                         // clear output
+        refresh();
+
         sa.sa_handler = SIG_IGN;                        // briefly ignore signal
         if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
             wrap_up();
@@ -540,8 +542,10 @@ static void game_over( char *message )
         exit(1);
     }
 
-    mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2
-                , "GAME OVER");
+    mvaddch( the_ball.y_pos, the_ball.x_pos, BLANK );             // delete ball
+
+    mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2    // output
+                , "%s", message );
     
     refresh();
 }
