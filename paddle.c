@@ -5,7 +5,7 @@
 
 /* *
  * paddle.c
- * 
+ * Creates and moves paddle. Also determines paddle position in relation to ball
  */
 
 #include    "paddle.h"
@@ -15,9 +15,10 @@ static struct pppaddle paddle;
 
 /* *
  * paddle_init( int x_pos, int y_min, int y_max )
- * purpose:
- * args:
- * rets:
+ * purpose: create paddle
+ * args: the x-position/column to place paddle, the min and max range paddle can
+ *  move
+ * rets: none
  */
 void paddle_init( int x_pos, int y_min, int y_max )
 {

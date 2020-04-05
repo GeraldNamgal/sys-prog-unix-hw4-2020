@@ -13,7 +13,7 @@
 /* *
  * Parameters
  */
-#define	BLANK		    ' '                                    // ball constants
+#define	BLANK		    ' '                                // ball constants
 #define	DFL_SYMBOL	    'o'
 #define BORDR_SIZE       3
 #define OFF_SCREEN      -2
@@ -24,12 +24,12 @@
 #define BALL_ABOVE       3
 #define TOTAL_BALLS      3
 
-#define	TOP_ROW		    BORDR_SIZE                            // court constants
+#define	TOP_ROW		    BORDR_SIZE                        // court constants
 #define	BOT_ROW 	    LINES - BORDR_SIZE
 #define	LEFT_EDGE	    BORDR_SIZE
 #define	RIGHT_EDGE	    COLS - BORDR_SIZE - 1
 
-#define	TICKS_PER_SEC	50		                                // affects speed
+#define	TICKS_PER_SEC	50		                        // affects speed
 #define X_MAX            6                         // max delay for x ball speed
 #define Y_MIN            7                         // min delay for y ball speed 
 #define Y_MAX           15                         // max delay for y ball speed

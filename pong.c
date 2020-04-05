@@ -64,7 +64,7 @@ int main()
 
     srand( getpid() );                   // use pid as seed for random generator 
 
-	set_up();                                            // initialize all stuff      
+	set_up();                                        // initialize all stuff      
 
 	while ( ( c = getch() ) != 'Q' )
     {
@@ -89,12 +89,12 @@ int main()
  */
 
 static void set_up() {
-	if ( initscr() == NULL ) {                                 // turn on curses	
+	if ( initscr() == NULL ) {                             // turn on curses	
         fprintf(stderr, "pong: Error calling initscr()\n");
         exit(1);
     }
-    noecho();		                                            // turn off echo	
-	cbreak();		                                       // turn off buffering	
+    noecho();		                                        // turn off echo	
+	cbreak();		                           // turn off buffering 	
     curs_set(0);                                        // make cursor invisible
     
     putUpWalls();                                                  // draw court     
@@ -209,7 +209,7 @@ static void serve()
     if ( ( the_ball.y_count = the_ball.y_delay = ( rand() % Y_MAX ) ) < Y_MIN ){
         the_ball.y_count = the_ball.y_delay = Y_MIN ;      
     }
-	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX ) ;   // ball x speed
+	the_ball.x_count = the_ball.x_delay = ( rand() % X_MAX );// ball x speed
     
     if ( rand() % 2 == 0 )                                  // ball's directions
         the_ball.y_dir = 1;    
@@ -244,7 +244,7 @@ static void ball_and_clock() {
 	int	y_cur, x_cur, y_moved, x_moved;	
     y_cur = the_ball.y_pos;                                          // old spot 
     x_cur = the_ball.x_pos;   
-	y_moved = 0;                                                 // set up flags
+	y_moved = 0;                                             // set up flags
     x_moved = 0;
     if ( clock_ticks > TICKS_PER_SEC - 1 ) {          // increment clock seconds
         clock_ticks = 0;
@@ -260,16 +260,16 @@ static void ball_and_clock() {
     mvprintw( TOP_ROW - 1, RIGHT_EDGE - 5, "%d:%d", mins, secs );  // print time
     ++clock_ticks;                                      // increment clock ticks
 	if ( --the_ball.y_count < 0 ) {
-		the_ball.y_pos += the_ball.y_dir ;	                  // move ball y dir
-		the_ball.y_count = the_ball.y_delay ;                     // reset count
-		y_moved = 1;                                            // flag movement
+		the_ball.y_pos += the_ball.y_dir ;	      // move ball y dir
+		the_ball.y_count = the_ball.y_delay ;             // reset count
+		y_moved = 1;                                    // flag movement
 	}
 	if ( --the_ball.x_count < 0 ) { 
-		the_ball.x_pos += the_ball.x_dir ;                    // move ball x dir	
-		the_ball.x_count = the_ball.x_delay ;	                  // reset count
-		x_moved = 1;                                            // flag movement
+		the_ball.x_pos += the_ball.x_dir ;            // move ball x dir	
+		the_ball.x_count = the_ball.x_delay ;	          // reset count
+		x_moved = 1;                                    // flag movement
 	}
-	if ( y_moved || x_moved )                                     // ball moved?
+	if ( y_moved || x_moved )                                 // ball moved?
         move_the_ball( y_cur, x_cur, y_moved, x_moved );  	
 }
 
@@ -284,7 +284,7 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
     int save_y, save_x, ret_value;    
     getyx( stdscr, save_y, save_x );                     // save cursor location    
     ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
-    if ( ret_value == OFF_SCREEN ) {                    // ball moved off screen                          
+    if ( ret_value == OFF_SCREEN ) {             // ball moved off screen                          
         if ( balls_left > 0 )
             reset();                                // reset and start new round
         else
@@ -437,7 +437,7 @@ static void padd_middle_hit( struct ppball * bp )
     if ( ( bp->y_delay = ( rand() % Y_MAX ) ) < Y_MIN )        // change y speed
         bp->y_delay = Y_MIN;
     
-    bp->x_count = 0, bp->y_count = 0;                       // force  countdowns                             
+    bp->x_count = 0, bp->y_count = 0;             // force  countdowns                             
 }
 
 /* *
@@ -624,7 +624,7 @@ static void wrap_up()
         exit(1);
     }
 
-	if ( endwin() == ERR )     	                           // put back to normal	
+	if ( endwin() == ERR )     	                   // put back to normal	
     {
         fprintf(stderr, "pong: Error calling endwin()\n");
         exit(1);
