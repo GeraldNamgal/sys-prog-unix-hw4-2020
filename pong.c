@@ -95,11 +95,11 @@ static void set_up() {
     // TODO: 17 magic number too much?
     mvprintw( TOP_ROW - 1, RIGHT_EDGE - 17, "TOTAL TIME: %d:%d", mins, secs );
 
-    sigemptyset(&sa.sa_mask);                     // change sig handler settings
-    sa.sa_flags = SA_RESTART;
-    
     interval_secs = INTERVAL_SECS;                      // for interval_output()
-    sa.sa_handler = interval_output;                       // set signal handler
+
+    sa.sa_handler = interval_output;              // change sig handler settings
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART;    
     if ( sigaction( SIGALRM, &sa, NULL ) == -1 ) {         
         wrap_up();
         fprintf(stderr, "pong: Error setting signal handler: %d\n", errno);
