@@ -1,7 +1,12 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
-// TODO: date goes here
+// 4-5-2020
 // hw 4
+
+/* *
+ * paddle.h
+ * Header file for paddle.c
+ */
 
 #include <stdbool.h>
 

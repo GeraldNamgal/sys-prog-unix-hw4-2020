@@ -1,10 +1,13 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
-// TODO: date goes here
+// 4-5-2020
 // hw 4
 
 /* *
- * header file for alarmlib.c
+ * alarmlib.h
+ * Header file for alarmlib.c
+ * 
+ * note: code references alarmlib.h from lecture 6
  */
 
 int set_ticker(int);

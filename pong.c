@@ -1,11 +1,15 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
-// TODO: date goes here
+// 4-5-2020
 // hw 4
 
 /* *
+ * pong.c
+ * Implements a version of the classic computer game 'pong'. To move the paddle
+ * up and down, use the 'k' and 'm' keys, respectively
+ * usage: ./pong
  * 
- * note: TODO -- need to cite code referenced, e.g., bounce2d.c from lecture
+ * note: code references bounce2d.c from lecture 6
  */
 
 #include	<stdio.h>
@@ -23,11 +27,11 @@ struct ppball the_ball;
 struct sigaction sa;
 
 static int      balls_left = TOTAL_BALLS - 1;
-static int      mins = 0,
-                secs = 0,
-                clock_ticks = 0,
-                interval_ticks = 0,
-                interval_secs = 0;
+static int      mins = 0,                                  // clock/time minutes
+                secs = 0,                                  // clock/time seconds
+                clock_ticks = 0,                                 // tick counter
+                interval_ticks = 0,                              // tick counter
+                interval_secs = 0;                  // length of interval screen
 
 static void	    set_up();
 static void     putUpWalls();
@@ -49,7 +53,10 @@ static void     game_over( char * );
 
 /* *
  * main()
- * 
+ * purpose: sets up and starts game for playing. Accepts user input (for moving
+ *  paddle and quitting). Closes game after user quits
+ * args: none
+ * rets: exit status
  */ 
 int main()
 {
@@ -61,10 +68,10 @@ int main()
 
 	while ( ( c = getch() ) != 'Q' )
     {
-		if ( c == 'k' )            
+		if ( c == 'k' || c == 'K' )            
             up_paddle() ;
 
-		else if ( c == 'm' )             
+		else if ( c == 'm' || c == 'M' )             
             down_paddle() ;       
 	}
 
@@ -74,14 +81,16 @@ int main()
 }
 
 /* *
- *
- * init ppball struct, signal handler, curses
+ * static void set_up()
+ * purpose: init screen, court, paddle, clock, curses settings, signal handler,
+ *  ticker
+ * args: none
+ * rets: none
  */
 
 static void set_up() {
 	if ( initscr() == NULL ) {                                 // turn on curses	
-        // TODO
-        fprintf(stderr, "pong: Error message...\n");
+        fprintf(stderr, "pong: Error calling initscr()\n");
         exit(1);
     }
     noecho();		                                            // turn off echo	
@@ -92,8 +101,8 @@ static void set_up() {
     paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );                  // draw paddle
                                                               // print top info:
     mvprintw( TOP_ROW - 1, LEFT_EDGE + 1, "BALLS LEFT: %d", balls_left );
-    // TODO: 17 magic number too much?
     mvprintw( TOP_ROW - 1, RIGHT_EDGE - 17, "TOTAL TIME: %d:%d", mins, secs );
+    refresh();
 
     interval_secs = INTERVAL_SECS;                      // for interval_output()
 
@@ -114,9 +123,9 @@ static void set_up() {
 
 /* *
  * putUpWalls()
- * purpose: 
- * args: 
- * rets: 
+ * purpose: draw the court
+ * args: none
+ * rets: none
  */
 static void putUpWalls()
 {       
@@ -151,6 +160,12 @@ static void putUpWalls()
     refresh();
 }
 
+/* *
+ * interval_output()
+ * purpose: print an interval screen to pause briefly between game play
+ * args: none
+ * rets: none
+ */
 static void interval_output()
 {
     if ( interval_ticks > TICKS_PER_SEC - 1 ) {
@@ -180,6 +195,12 @@ static void interval_output()
     }    
 }
 
+/* *
+ * serve()
+ * purpose: serve the ball
+ * args: none
+ * rets: none
+ */
 static void serve()
 {
     the_ball.y_pos = ( TOP_ROW + BOT_ROW ) / 2;      // ball's initial positions
@@ -213,33 +234,31 @@ static void serve()
 }
 
 /* *
- *
- * SIGARLM handler: decr directional counters, move when they hit 0
- * note: may have too much going on in this handler
+ * ball_and_clock()
+ * purpose: SIGARLM handler that decr directional counters, move when they hit
+ *  0. Also to increment clock
+ * args: none
+ * rets: none
  */
 static void ball_and_clock() {
-	int	y_cur, x_cur, y_moved, x_moved;	 	
-	
+	int	y_cur, x_cur, y_moved, x_moved;	
     y_cur = the_ball.y_pos;                                          // old spot 
     x_cur = the_ball.x_pos;   
 	y_moved = 0;                                                 // set up flags
-    x_moved = 0 ;
-
-    if ( clock_ticks > TICKS_PER_SEC - 1 ) {
+    x_moved = 0;
+    if ( clock_ticks > TICKS_PER_SEC - 1 ) {          // increment clock seconds
         clock_ticks = 0;
         ++secs;                                             
     }
-    if ( secs > SECS_PER_MIN - 1 ) {
+    if ( secs > SECS_PER_MIN - 1 ) {                 // incremenet clock minutes
         secs = 0;
         ++mins;
         mvprintw( TOP_ROW - 1, RIGHT_EDGE - 2, "  " );         // clear old time
     }
-    // TODO: test this time out
     if ( mins > TIME_LIMIT )
         game_over("TIMED OUT");
-    mvprintw( TOP_ROW - 1, RIGHT_EDGE - 5, "%d:%d", mins, secs );
-    ++clock_ticks;
-
+    mvprintw( TOP_ROW - 1, RIGHT_EDGE - 5, "%d:%d", mins, secs );  // print time
+    ++clock_ticks;                                      // increment clock ticks
 	if ( --the_ball.y_count < 0 ) {
 		the_ball.y_pos += the_ball.y_dir ;	                  // move ball y dir
 		the_ball.y_count = the_ball.y_delay ;                     // reset count
@@ -255,25 +274,23 @@ static void ball_and_clock() {
 }
 
 /* *
- * TODO
+ * move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
+ * purpose: move the ball including bounce it if necessary
+ * args: the ball's original xy-position, and if its xy-coordinates moved
+ * rets: none
  */
 void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
 {
     int save_y, save_x, ret_value;    
-    
     getyx( stdscr, save_y, save_x );                     // save cursor location    
-    
     ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
-
-    if ( ret_value == OFF_SCREEN )                      // ball moved off screen                          
-    {
+    if ( ret_value == OFF_SCREEN ) {                    // ball moved off screen                          
         if ( balls_left > 0 )
             reset();                                // reset and start new round
         else
             game_over("GAME OVER");                                 // game over
         return;                                      
     }
-
     if ( ret_value == BOUNCE ) {                               // hit a boundary
         the_ball.y_pos = y_cur;                              // move back to cur 
         the_ball.x_pos = x_cur;
@@ -287,45 +304,35 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
             the_ball.x_pos = x_cur;       
         }                    
     }
-
-    mvaddch( y_cur, x_cur, BLANK );
-    mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );
-    
-    move( save_y, save_x );                            // return cursor location
-    
+    mvaddch( y_cur, x_cur, BLANK );                        // draw ball movement
+    mvaddch( the_ball.y_pos, the_ball.x_pos, the_ball.symbol );    
+    move( save_y, save_x );                            // return cursor location   
     refresh();
 }
 
 /* *
- *
- * bounce_or_lose: if ball hits walls, change its direction
- * args: address to ppball
- * rets: 1 if a bounce happened, 0 if not
+ * bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
+ * purpose: if ball hits walls or paddle, change its direction
+ * args: address to ppball, if the ball's xy-coordinates changed
+ * rets: symbolic constant depending on ball activity, e.g., BOUNCE
  */
 static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
 {    
     if ( bp->x_pos == COLS + 1)
         return OFF_SCREEN;
-
     else if ( bp->x_pos >= RIGHT_EDGE + 1 )
-        return LOST;   
-    
-    else if ( y_moved == 0 && x_moved == 0 )     // paddle move (ball stays put)
-    {
+        return LOST;    
+    else if ( y_moved == 0 && x_moved == 0 ) {   // paddle move (ball stays put)
         if ( paddle_contact( bp->y_pos + 1, bp->x_pos ) != NO_CONTACT ) 
             return BALL_ABOVE;                           // paddle is below ball
         if ( paddle_contact( bp->y_pos - 1, bp->x_pos ) != NO_CONTACT ) 
             return BALL_BELOW;                           // paddle is above ball
-    } 
-
+    }
     else if ( corner_bounce( bp ) )
-        return BOUNCE;
-    
+        return BOUNCE;    
     else if ( edge_bounce( bp ) )
         return BOUNCE;
-
-    else if ( bp->x_pos == RIGHT_EDGE )
-    {
+    else if ( bp->x_pos == RIGHT_EDGE ) {
         int ret_value = paddle_contact( bp->y_pos, bp->x_pos );       
         
         if ( ret_value == PADD_MIDDLE ) { 
@@ -340,11 +347,16 @@ static int bounce_or_lose( struct ppball *bp, int y_moved, int x_moved )
             padd_bottom_hit( &the_ball, y_moved, x_moved ); 
             return BOUNCE;
         }        
-    }   
-
+    }
 	return NO_HIT;
 }
 
+/* *
+ * corner_bounce( struct ppball *bp )
+ * purpose: handle cases when ball hits any of the four corners of the court
+ * args: the ball's address
+ * rets: if it bounced or not
+ */
 static int corner_bounce( struct ppball *bp ) {
     if ( bp->y_pos == TOP_ROW && bp->x_pos == LEFT_EDGE ) {          // ball loc
 		bp->y_dir = 1, bp->x_dir = 1;
@@ -381,6 +393,13 @@ static int corner_bounce( struct ppball *bp ) {
     return NO_HIT;   
 }
 
+/* *
+ * edge_bounce( struct ppball * bp )
+ * purpose: handle cases when ball hits any of the left, top, or bottom sides of
+ *  the court
+ * args: the ball's address
+ * rets: if the ball bounced or not
+ */
 static int edge_bounce( struct ppball * bp )
 {
     if ( bp->x_pos == LEFT_EDGE )
@@ -404,6 +423,12 @@ static int edge_bounce( struct ppball * bp )
     return NO_HIT;
 }
 
+/* *
+ * padd_middle_hit( struct ppball * bp )
+ * purpose: handles cases when ball hits the middle of the paddle
+ * args: the ball's address
+ * rets: none
+ */
 static void padd_middle_hit( struct ppball * bp )
 {
     bp->x_dir = -1;
@@ -415,6 +440,12 @@ static void padd_middle_hit( struct ppball * bp )
     bp->x_count = 0, bp->y_count = 0;                       // force  countdowns                             
 }
 
+/* *
+ * padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
+ * purpose: handle cases when the ball hits the top of the paddle
+ * args: the ball's address, if the xy-coordinates of the ball moved
+ * rets: none
+ */
 static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
 {
     if ( y_moved && !x_moved )                     // hit top surface of paddle?
@@ -436,6 +467,12 @@ static void padd_top_hit( struct ppball * bp, int y_moved, int x_moved )
     bp->x_count = 0, bp->y_count = 0;                       // force  countdowns
 }
 
+/* *
+ * padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
+ * purpose: handle cases when the ball hits the bottom of the paddle
+ * args: the ball's address, if the xy-coordinates of the ball moved
+ * rets: none
+ */
 static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
 {
     if ( y_moved && !x_moved )                  // hit bottom surface of paddle?
@@ -457,6 +494,12 @@ static void padd_bottom_hit( struct ppball * bp, int y_moved, int x_moved )
     bp->x_count = 0, bp->y_count = 0;                       // force  countdowns                
 }
 
+/* *
+ * up_paddle()
+ * purpose: handle moving the paddle up
+ * args: none
+ * rets: none
+ */
 static void up_paddle()
 {
     if ( bounce_or_lose( &the_ball, 0, 0 ) == BALL_ABOVE )
@@ -483,6 +526,12 @@ static void up_paddle()
         paddle_up();
 }
 
+/* *
+ * down_paddle()
+ * purpose: handle moving the paddle down
+ * args: none
+ * rets: none
+ */
 static void down_paddle()
 {
     if ( bounce_or_lose( &the_ball, 0, 0 ) == BALL_BELOW )
@@ -509,6 +558,12 @@ static void down_paddle()
         paddle_down();
 }
 
+/* *
+ * reset()
+ * purpose: resets game play after a loss
+ * args: none
+ * rets: none
+ */
 static void reset()
 {
     sa.sa_handler = SIG_IGN;                            // briefly ignore signal
@@ -523,6 +578,7 @@ static void reset()
     paddle_init( RIGHT_EDGE, TOP_ROW, BOT_ROW );                  
     mvprintw( TOP_ROW - 1, LEFT_EDGE + 1, "BALLS LEFT: %d", --balls_left );
     mvprintw( TOP_ROW - 1, RIGHT_EDGE - 17, "TOTAL TIME: %d:%d", mins, secs );
+    refresh();
 
     interval_secs = INTERVAL_SECS;                      // for interval_output()
     sa.sa_handler = interval_output;                    // change signal handler
@@ -533,40 +589,44 @@ static void reset()
     }
 }
 
+/* *
+ * game_over( char *message )
+ * purpose: handles gameplay and screen when it's game over
+ * args: message to display on the screen
+ * rets: none
+ */
 static void game_over( char *message )
 {
     if ( set_ticker( 0 ) == -1 )
     {
-        // TODO
-        fprintf(stderr, "pong: Error message...\n");
+        fprintf(stderr, "pong: Error calling set_ticker()\n");
         exit(1);
     }
 
     mvaddch( the_ball.y_pos, the_ball.x_pos, BLANK );             // delete ball
 
     mvprintw( (TOP_ROW + BOT_ROW) / 2, (LEFT_EDGE + RIGHT_EDGE) / 2    // output
-                , "%s", message );
-    
+                , "%s", message );    
     refresh();
 }
 
 /* *
- *
- * stop ticker and curses
+ * wrap_up()
+ * purpose: stop ticker and curses
+ * args: none
+ * rets: none
  */
 static void wrap_up()
 {
 	if ( set_ticker( 0 ) == -1 )
     {
-        // TODO
-        fprintf(stderr, "pong: Error message...\n");
+        fprintf(stderr, "pong: Error calling set_ticker()\n");
         exit(1);
     }
 
 	if ( endwin() == ERR )     	                           // put back to normal	
     {
-        // TODO
-        fprintf(stderr, "pong: Error message...\n");
+        fprintf(stderr, "pong: Error calling endwin()\n");
         exit(1);
     }
 }

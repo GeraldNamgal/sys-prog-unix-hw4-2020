@@ -1,11 +1,10 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
-// TODO: date goes here
+// 4-5-2020
 // hw 4
 
 /* *
- * 
- * note: TODO -- need to cite code referenced, e.g., bounce2d.c from lecture
+ * note: code references alarmlib.c from lecture 6
  *
  *	alarmlib.c	
  *			timer functions for higher resolution clock
@@ -27,9 +26,9 @@
 #include	<unistd.h>
 
 /* *
- * 
- * arg in milliseconds, converted into micro seoncds
- * Returns -1 on error, 0 if no error
+ * set_ticker( int n_msecs ) 
+ * args: arg in milliseconds, converted into micro seoncds
+ * rets: returns -1 on error, 0 if no error
  */
 int set_ticker( int n_msecs )
 {

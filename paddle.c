@@ -1,13 +1,24 @@
 // Gerald Arocena
 // CSCI E-28, Spring 2020
-// TODO: date goes here
+// 4-5-2020
 // hw 4
+
+/* *
+ * paddle.c
+ * 
+ */
 
 #include    "paddle.h"
 #include	<curses.h>
 
 static struct pppaddle paddle;
 
+/* *
+ * paddle_init( int x_pos, int y_min, int y_max )
+ * purpose:
+ * args:
+ * rets:
+ */
 void paddle_init( int x_pos, int y_min, int y_max )
 {
     int pad_height = ( y_max - y_min - 1 ) / 3;                 // paddle height
@@ -28,6 +39,12 @@ void paddle_init( int x_pos, int y_min, int y_max )
     refresh();
 }
 
+/* *
+ * paddle_up()
+ * purpose: move the paddle up
+ * args: none
+ * rets: none
+ */
 void paddle_up()
 {
     bool moved = false;
@@ -47,6 +64,12 @@ void paddle_up()
     }
 }
 
+/* *
+ * paddle_down()
+ * purpose: move the paddle down
+ * args: none
+ * rets: none
+ */
 void paddle_down()
 {
     bool moved = false;
@@ -66,6 +89,12 @@ void paddle_down()
     }
 }
 
+/* *
+ * paddle_contact( int ball_y, int ball_x )
+ * purpose: determine ball position in relation to paddle
+ * args: the ball's xy-coordinates
+ * rets: symbolic constant depending on contact activity, e.g., NO_CONTACT
+ */
 int paddle_contact( int ball_y, int ball_x )
 {    
     if ( ball_y > paddle.pad_top && ball_y < paddle.pad_bot
