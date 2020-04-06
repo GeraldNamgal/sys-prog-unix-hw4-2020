@@ -1,0 +1,118 @@
+Gerald Arocena
+CSCI E-20, Spring 2020
+4-5-2020
+Plan for hw 4
+
+Purpose:
+
+The purpose of pong is to create a version of the classic computer game 'pong'.
+Pong is a one-person ping-pong game that allows the user to move a paddle up and
+down on the screen to bounce a moving ball back and forth. The object of the
+game is to keep the ball bouncing around for as long as possible. If a ball gets
+past the paddle, it becomes out of play. If a ball hits a wall, it bounces. When
+the number of balls runs out, then the game is over. There's a clock that
+displays the amount of game time and a counter for the number of remaining
+balls. The curses.h library will be used to accomplish these tasks.
+
+Outline:
+
+My version of pong works essentially like the classic pong game except that it
+is a one-person game and there's only one paddle. Also, ball-speed features are
+limited. The user can still move the paddle up and down and since the field of
+play is drawn to scale, the user can resize the terminal window and play the
+game in different screens.
+
+Interface:
+
+The user interface for pong includes the command line and key presses to move
+the paddle during game play and to quit the game at any time. The command line
+syntax is as follows:
+
+    ./pong          starts the game
+
+The "during game play" interface keys are:
+
+    'k' or 'K'      moves the paddle up
+    'm' or 'M'      moves the paddle down
+    'Q'             quits the game
+
+Data Structures:
+
+I created a static struct called ppball to represent the ball that's used in the
+game. It contains the xy-coordinate positions of the ball, as well as the ball's
+xy-directions, what symbol to draw it with, and variables used for timing its
+movements. All of these except for the symbol are updated throughout game play.
+I also created a static struct called pppaddle to represent the paddle the user
+uses to hit the ball with which contains information on the position of the
+paddle, its allowed range of movement, and what char it's drawn with. pong.c
+accesses the pppaddle struct through its public API interface as outlined in
+paddle.h. I also used a sigaction struct for signal handling.
+
+Program Flow:
+
+1. Set up game environment including court, ball, and paddle using curses.h.
+2. Serve the ball.
+3. Block on user input (move paddle or quit).
+4. Disassemble game environment and return to terminal when user quits.
+
+Algorithm:
+
+My pong prevents against race conditions by saving the cursor location with
+getyx() right before and right after ball movements as described in README. It
+also implements an observer design pattern whereby a timer alerts the signal
+handler of timer ticks and the signal handler performs an action appropriately
+such as calling a function that updates the total time clock. Actions are also
+triggered whenever the ball or paddle moves such as whether or not to change the
+balls movement.
+
+Error Handling:
+
+The program prints an error message and performs exit(1) in the following
+situations:
+
+    [1] if the terminal window is not the right size
+    [2] if initscr() failed
+    [3] if sigaction() failed
+    [4] if set_ticker() failed    
+    [5] if endwin() fails
+
+Layering:
+
+    main() in pong.c calls:
+        set_up()            -- sets up the game environment on the screen
+        up_paddle()         -- moves paddle from paddle.c up;
+                               calls bounce_or_lose()   
+        down_paddle()       -- moves paddle from paddle.c down;
+                               calls bounce_or_lose() 
+        wrap_up()           -- stops ticker, calls endwin()
+    set_up() in pong.c calls:
+        initscr()           -- starts up curses
+        putUpWalls()        -- draws the court
+        paddle_init()       -- draws the paddle
+        sigaction()         -- changes handler to interval_output()
+        set_ticker()        -- starts timer ticker from alarmlib.c
+    interval_output() in pong.c calls:
+        serve()             -- serves the ball
+        sigaction()         -- changes handler to ball_and_clock()
+    ball_and_clock() in pong.c calls:
+        game_over()         -- stops ticker and prints output (on timed out)
+        move_the_ball()     -- handles ball movement
+    move_the_ball() in pong.c calls:
+        bounce_or_lose()    -- if ball contacts walls or paddle, else no hit
+        reset()             -- reset screen and start new ball
+        game_over()         -- stops ticker and prints output (on game over)
+    bounce_or_lose() in pong.c calls:
+        paddle_contact()    -- checks ball location in relation to paddle's
+        corner_bounce()     -- checks if the ball hit corner boundaries of court
+        edge_bounce()       -- checks if ball hit sides of court
+        padd_middle_hit()   -- if ball hit middle of paddle
+        padd_top_hit()      -- if ball hit top of paddle
+        padd_bottom_hit()   -- if ball hit bottom of paddle
+    corner_bounce() in pong.c calls:
+        paddle_contact()    -- checks if paddle is in either of right corners
+
+File Structure:
+
+    pong.c          -- the functions listed above
+    paddle.c        -- creates and moves paddle; provides info on its position
+    alarmlib.c      -- manages timer ticks

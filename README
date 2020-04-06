@@ -1,0 +1,36 @@
+Gerald Arocena
+CSCI E-20, Spring 2020
+4-5-2020
+README for hw 4
+
+"In this file put a list of the files you are submitting with
+a brief (four to ten words) description of each one." --
+
+- Makefile                   <-- the Makefile needed to run the program 
+- Plan                       <-- the plan for how my program will be implemented
+- pong.c                     <-- the main program
+- pong.h                     <-- header file for pong.c
+- paddle.c                   <-- has paddle-related functions used by pong.c
+- paddle.h                   <-- header file for paddle.c
+- alarmlib.c                 <-- has timer functions used by pong.c
+- alarmlib.h                 <-- header file for alarmlib.c
+
+"Also put any notes to the grader." --
+
+- To compile pong, navigate to the directory with pong.c and run "make" at the
+  command line. Then to run pong, the usage is "./pong". Use the 'k' and 'm'
+  keys to move the paddle up and down respectively.
+
+Homework question: race condition problem --
+
+- My implementation of pong handles this problem by saving the cursor location
+  right before moving the ball and then returning to that location right after
+  moving the ball. As can be seen in my pong.c file, the move_the_ball()
+  function saves the location of the cursor with getyx(), proceeds to draw the
+  ball movement, and then when it's done with that, it moves the cursor back to
+  the position it saved. That way, if the ball move interrupted another part of
+  the program which also moves the cursor around, then there's no confusion as
+  to which cursor location is associated with what function and a race condition
+  is avoided. That is, saving the location of the cursor before moving the ball
+  and returning after allows for paddle movement to be effectively atomic.
+

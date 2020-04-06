@@ -11,7 +11,7 @@
 #include    "paddle.h"
 #include	<curses.h>
 
-static struct pppaddle paddle;
+static struct pppaddle paddle;                           // the ping pong paddle
 
 /* *
  * paddle_init( int x_pos, int y_min, int y_max )

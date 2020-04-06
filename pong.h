@@ -14,20 +14,20 @@
  * Parameters
  */
 #define	BLANK		    ' '                                // ball constants
-#define	DFL_SYMBOL	    'o'
-#define BORDR_SIZE       3
-#define OFF_SCREEN      -2
+#define	DFL_SYMBOL	    'o'                             // used to draw ball
+#define OFF_SCREEN      -2                                 // ball is off screen
 #define LOST            -1
 #define NO_HIT           0
 #define BOUNCE           1
-#define BALL_BELOW       2
-#define BALL_ABOVE       3
+#define BALL_BELOW       2                               // ball is below paddle
+#define BALL_ABOVE       3                               // ball is above paddle
 #define TOTAL_BALLS      3
 
-#define	TOP_ROW		    BORDR_SIZE                        // court constants
-#define	BOT_ROW 	    LINES - BORDR_SIZE
-#define	LEFT_EDGE	    BORDR_SIZE
-#define	RIGHT_EDGE	    COLS - BORDR_SIZE - 1
+#define BORDR_SIZE       3                                    // court constants
+#define	TOP_ROW		 BORDR_SIZE                        
+#define	BOT_ROW 	 LINES - BORDR_SIZE
+#define	LEFT_EDGE	 BORDR_SIZE
+#define	RIGHT_EDGE	 COLS - BORDR_SIZE - 1
 
 #define	TICKS_PER_SEC	50		                        // affects speed
 #define X_MAX            6                         // max delay for x ball speed
@@ -40,6 +40,6 @@
 /* *
  * The ball
  */
-struct ppball { int   x_pos, x_dir, x_delay, x_count,
-			          y_pos, y_dir, y_delay, y_count ;	          
-		        char  symbol ; } ;
+struct ppball { int x_pos, x_dir, x_delay, x_count,  // x pos, direction, timing
+	            y_pos, y_dir, y_delay, y_count ; // y pos, direction, timing	          
+		char  symbol ; } ;                          // used to draw ball

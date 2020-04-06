@@ -23,8 +23,8 @@
 #include    "paddle.h"
 #include	<errno.h>
 
-struct ppball the_ball;
-struct sigaction sa;
+static struct ppball the_ball;                             // the ping pong ball
+static struct sigaction sa;            // for setting sig handler w. sigaction()
 
 static int      balls_left = TOTAL_BALLS - 1;
 static int      mins = 0,                                  // clock/time minutes
@@ -286,7 +286,7 @@ void move_the_ball( int y_cur, int x_cur, int y_moved, int x_moved )
     ret_value = bounce_or_lose( &the_ball, y_moved, x_moved );
     if ( ret_value == OFF_SCREEN ) {             // ball moved off screen                          
         if ( balls_left > 0 )
-            reset();                                // reset and start new round
+            reset();                                // reset and starts new ball
         else
             game_over("GAME OVER");                                 // game over
         return;                                      

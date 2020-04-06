@@ -7,12 +7,11 @@
  * note: code references alarmlib.c from lecture 6
  *
  *	alarmlib.c	
- *			timer functions for higher resolution clock
+ *			timer function for higher resolution clock
  *
  *			set_ticker( number_of_milliseconds )
  *				arranges for the interval timer to issue
  *				SIGALRM at regular intervals
- *			millisleep( number_of_milliseconds )
  *
  * 	version 12.04.01 changed interface to set_ticker so it rets -1 on error
  *	version 98.03.16
